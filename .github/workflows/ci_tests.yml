@@ -1,0 +1,40 @@
+name: Infrastructure CI Unit Tests
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  test-bash-toolkit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Install BATS
+        run: sudo apt-get install -y bats
+        
+      - name: Run Bash Unit Tests
+        # Explicitly pointing to the bash directory
+        run: bats tests/bash/
+        
+  test-python-configs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install pytest
+          
+      - name: Run Pytest
+        # Explicitly pointing to the python directory to resolve Exit Code 5
+        run: pytest tests/python/
+        
