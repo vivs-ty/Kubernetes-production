@@ -7,57 +7,55 @@ git
 
 *To understand why Kubernetes exists, you must first understand the problems it was built to solve. We begin at the lowest level: the Linux Kernel.*
 
-1. The Core Kernel Primitives: Building a Container from Scratch
+1. **The Core Kernel Primitives: Building a Container from Scratch**
 A container is not a virtual machine. It does not run a guest operating system, nor does it require a hypervisor layer to translate CPU instructions.
 
-Production Definition: A container is a standard, unprivileged Linux process running directly on the host operating system's kernel, whose visibility and resource consumption are artificially constrained by two primary kernel features: Namespaces and Control Groups (cgroups).
+**Production Definition:** A container is a standard, unprivileged Linux process running directly on the host operating system's kernel, whose visibility and resource consumption are artificially constrained by two primary kernel features: **Namespaces** and **Control Groups (cgroups)**.
 
-A. Linux Namespaces (The Isolation Layer)
+**A. Linux Namespaces (The Isolation Layer)**
 Namespaces govern what a process can see. When a process is cloned or unshared into a new namespace, the kernel provides it with a localized, partitioned view of global system resources.
 
-`pid` (Process ID) Namespace: Isolates the process ID space. The primary application process inside the container is assigned PID 1, becoming the initialization process for that isolated environment. However, when viewed from the host operating system's root namespace, this same process appears as a standard high-numbered PID (e.g., PID 84320).
+`pid` (**Process ID**) **Namespace:** Isolates the process ID space. The primary application process inside the container is assigned PID 1, becoming the initialization process for that isolated environment. However, when viewed from the host operating system's root namespace, this same process appears as a standard high-numbered PID (e.g., PID 84320).
 
-`net` (Network) Namespace: Isolates network virtualization primitives, including routing tables, firewall (`iptables`/`nftables`) rules, port bindings, and physical/virtual network devices. A container receives its own loopback interface (`lo`) and a virtual ethernet interface (`veth`), allowing it to bind to port `80` without conflicting with any other process on the host.
+- `net` (**Network**) **Namespace:** Isolates network virtualization primitives, including routing tables, firewall (`iptables`/`nftables`) rules, port bindings, and physical/virtual network devices. A container receives its own loopback interface (`lo`) and a virtual ethernet interface (`veth`), allowing it to bind to port `80` without conflicting with any other process on the host.
 
-`mnt` (Mount) Namespace: Isolates the file system mount points. Processes in different mount namespaces have distinct views of the entire directory structure. This allows a container to construct its own root directory (`/`) without affecting the storage configuration of the underlying host.
+- `mnt` (**Mount**) **Namespace:** Isolates the file system mount points. Processes in different mount namespaces have distinct views of the entire directory structure. This allows a container to construct its own root directory (`/`) without affecting the storage configuration of the underlying host.
 
-`ipc` (Inter-Process Communication) Namespace: Prevents processes across different containers from accessing shared memory segments, POSIX message queues, or System V IPC semaphores, establishing a strict memory-boundary wall.
+- `ipc` (**Inter-Process Communication**) **Namespace:** Prevents processes across different containers from accessing shared memory segments, POSIX message queues, or System V IPC semaphores, establishing a strict memory-boundary wall.
 
-`uts` (UNIX Timesharing System) Namespace: Isolates the hostname and NIS domain name. This enables each container to define its own unique identity (e.g., `web-server-pod-a`) independent of the host node's configuration.
+- `uts` (**UNIX Timesharing System**) **Namespace:** Isolates the hostname and NIS domain name. This enables each container to define its own unique identity (e.g., `web-server-pod-a`) independent of the host node's configuration.
 
-`user` (User and Group IDs) Namespace: Maps UID and GID allocations. A process can safely operate with full root privileges (UID 0) inside its local container namespace, while mapping to an entirely unprivileged user account (e.g., UID 10005) on the physical host, neutralizing the risk of host-takeover vulnerabilities.
+- `user` (**User and Group IDs**) **Namespace:** Maps UID and GID allocations. A process can safely operate with full root privileges (UID 0) inside its local container namespace, while mapping to an entirely unprivileged user account (e.g., UID 10005) on the physical host, neutralizing the risk of host-takeover vulnerabilities.
 
-B. Control Groups / cgroups (The Resource Allocation Layer)
+**B. Control Groups / cgroups (The Resource Allocation Layer)**
 While namespaces dictate visibility, cgroups dictate consumption. cgroups prevent the "noisy neighbor" effect, ensuring that a single misbehaved or compromised process cannot exhaust host resources and destabilize the cluster.
 
-cgroups v1 vs. cgroups v2: Modern Linux distributions and production Kubernetes clusters utilize cgroups v2. Unlike v1, which maintained disjointed, separate hierarchies for each resource controller, cgroups v2 introduces a single, unified group hierarchy where resource allocations (CPU, Memory, I/O, PIDs) are managed collectively per process subtree.
+- **cgroups v1 vs. cgroups v2:** Modern Linux distributions and production Kubernetes clusters utilize cgroups v2. Unlike v1, which maintained disjointed, separate hierarchies for each resource controller, cgroups v2 introduces a single, unified group hierarchy where resource allocations (CPU, Memory, I/O, PIDs) are managed collectively per process subtree.
 
-Memory Accounting and the OOM Killer: The kernel tracks page allocations within a cgroup. If a cgroup exceeds its hard memory boundary (memory.max), the Linux Out-Of-Memory (OOM) Killer immediately intervenes, scores the processes inside that cgroup, and sends a termination signal (SIGKILL), resulting in the classic Kubernetes error: Exit Code 137.
+- **Memory Accounting and the OOM Killer:** The kernel tracks page allocations within a cgroup. If a cgroup exceeds its hard memory boundary (`memory.max`), the Linux Out-Of-Memory (OOM) Killer immediately intervenes, scores the processes inside that cgroup, and sends a termination signal (`SIGKILL`), resulting in the classic Kubernetes error: `Exit Code 137`.
 
-CPU Shares and Throttling: Managed via the Completely Fair Scheduler (CFS) bandwidth control subsystem. The kernel uses a period (typically 100ms) and a quota. If a process is allocated $50\text{ms}$ of CPU time per $100\text{ms}$ period, it can consume a maximum of $0.5$ CPU cores. If it exceeds this quota, the kernel actively throttles its execution by withholding scheduler time slots until the next period resets.
+- **CPU Shares and Throttling:** Managed via the Completely Fair Scheduler (CFS) bandwidth control subsystem. The kernel uses a period (`typically 100ms`) and a quota. If a process is allocated $50\text{ms}$ of CPU time per $100\text{ms}$ period, it can consume a maximum of $0.5$ CPU cores. If it exceeds this quota, the kernel actively throttles its execution by withholding scheduler time slots until the next period resets.
 
-C. The Container Filesystem: chroot, pivot_root, and OverlayFS
+**C. The Container Filesystem: chroot, pivot_root, and OverlayFS**
 To give an isolated process the appearance of running inside an entirely distinct operating system distribution (e.g., Alpine, Ubuntu), it requires a dedicated root filesystem.
 
-pivot_root vs. chroot: While chroot simply changes the root directory for the current process, it leaves old file systems accessible via relative path traversal vulnerabilities. Containers utilize pivot_root, a more secure system call that moves the current root mount point to a temporary directory and unmounts the old root, cleanly swapping the entire root filesystem layout.
+- **`pivot_root` vs. `chroot`:** While chroot simply changes the root directory for the current process, it leaves old file systems accessible via relative path traversal vulnerabilities. Containers utilize `pivot_root`, a more secure system call that moves the current root mount point to a temporary directory and unmounts the old root, cleanly swapping the entire root filesystem layout.
 
-OverlayFS Mechanics: A union filesystem that layers multiple directories to expose a single, unified view to the container process.
+- **OverlayFS Mechanics:** A union filesystem that layers multiple directories to expose a single, unified view to the container process.
 
-LowerDir: The immutable, read-only layers representing the base container image. These layers are shared across all instances running on the host to conserve disk space.
+       - `LowerDir:` The immutable, read-only layers representing the base container image. These layers are shared across all instances running on the host to conserve disk space.
+       - `UpperDir:` The volatile, read-write layer instantiated when the container transitions to a running state. All new file creations, modifications, and deletions occur exclusively here.
+       - **`Copy-on-Write (CoW) Lifecycle`:** If a containerized application attempts to modify an existing file residing within the read-only `LowerDir`, the kernel transparently intercepts the operation, copies the file up to the `UpperDir`, and executes the modifications there. The original base layer remains pristine and untouched.
 
-UpperDir: The volatile, read-write layer instantiated when the container transitions to a running state. All new file creations, modifications, and deletions occur exclusively here.
+2. **Docker Architecture & The Open Container Initiative (OCI)**
+Historically, Docker was a monolithic toolchain responsible for image building, packaging, running containers, and managing storage/networks. Today, modern infrastructure relies on modular, standardized components governed by the **Open Container Initiative (OCI)**.
 
-Copy-on-Write (CoW) Lifecycle: If a containerized application attempts to modify an existing file residing within the read-only LowerDir, the kernel transparently intercepts the operation, copies the file up to the UpperDir, and executes the modifications there. The original base layer remains pristine and untouched.
+**A. The Separation of Concerns**
+- **OCI Image Specification:** Defines the structural layout of a container image tarball, its configuration manifests, and layer composition.
 
-2. Docker Architecture & The Open Container Initiative (OCI)
-Historically, Docker was a monolithic toolchain responsible for image building, packaging, running containers, and managing storage/networks. Today, modern infrastructure relies on modular, standardized components governed by the Open Container Initiative (OCI).
+- **OCI Runtime Specification:** Details how an unpacked image must be mounted and executed as a set of Linux namespaces and cgroups.
 
-A. The Separation of Concerns
-OCI Image Specification: Defines the structural layout of a container image tarball, its configuration manifests, and layer composition.
-
-OCI Runtime Specification: Details how an unpacked image must be mounted and executed as a set of Linux namespaces and cgroups.
-
-B. The Production Container Runtime Stack
+**B. The Production Container Runtime Stack**
 ```
 [ Kubernetes Kubelet ]
           │
@@ -70,18 +68,18 @@ B. The Production Container Runtime Stack
           ▼ (Kernel System Calls)
  [ Isolated Process ]
  ```
-High-Level Container Runtimes (containerd, CRI-O): These daemons manage the lifecycle of images, handle network attachments, supervise storage mounts, and expose a gRPC API that implements the Kubernetes Container Runtime Interface (CRI).
+- **High-Level Container Runtimes (`containerd`, `CRI-O`):** These daemons manage the lifecycle of images, handle network attachments, supervise storage mounts, and expose a gRPC API that implements the Kubernetes **Container Runtime Interface (CRI)**.
 
-Low-Level Container Runtimes (runc): A transient, short-lived CLI tool. It accepts an OCI-compliant runtime configuration from containerd or CRI-O, executes the necessary Linux kernel system calls (clone, unshare, setns, pivot_root), hands off execution to the container entrypoint, and immediately exits.
+- **Low-Level Container Runtimes (`runc`):** A transient, short-lived CLI tool. It accepts an OCI-compliant runtime configuration from `containerd` or `CRI-O`, executes the necessary Linux kernel system calls (`clone`, `unshare`, `setns`, `pivot_root`), hands off execution to the container entrypoint, and immediately exits.
 
-3. The Declarative Paradigm & The Architecture of "Why?"
-Traditional infrastructure operations are imperative: you execute precise, sequential commands to alter a system's state (e.g., SSH into a host, pull a package, configure a file, restart a system daemon). If a step fails, the system enters an ambiguous, unmanaged state.
+3. **The Declarative Paradigm & The Architecture of "Why?"**
+Traditional infrastructure operations are **imperative**: you execute precise, sequential commands to alter a system's state (e.g., SSH into a host, pull a package, configure a file, restart a system daemon). If a step fails, the system enters an ambiguous, unmanaged state.
 
-Kubernetes operates strictly on the Declarative Paradigm:
+Kubernetes operates strictly on the **Declarative Paradigm**:
 
-Desired State vs. Actual State: Instead of instructing the platform how to build an environment, you define exactly what the final environment must look like using static, version-controlled YAML declarations (manifests).
+- **Desired State vs. Actual State:** Instead of instructing the platform how to build an environment, you define exactly what the final environment must look like using static, version-controlled YAML declarations (manifests).
 
-The Continuous Reconciliation Loop: The fundamental architectural pattern governing Kubernetes. Control loops continually observe the actual state of the infrastructure, compare it against the desired state stored in the cluster database, calculate the variance, and execute corrective measures to converge the system back toward the desired configuration.
+- **The Continuous Reconciliation Loop:** The fundamental architectural pattern governing Kubernetes. Control loops continually observe the actual state of the infrastructure, compare it against the desired state stored in the cluster database, calculate the variance, and execute corrective measures to converge the system back toward the desired configuration.
 ```
        ┌────────────────────────┐
        │   Define Desired State │ (YAML Manifest)
@@ -115,11 +113,14 @@ YAML is designed to be easily read by humans while remaining easily parsed by ma
 
 * **Indentation (Hierarchy):** YAML does not use brackets `{}` to show nested data like JSON does. It relies entirely on indentation.
 * **Crucial Rule:** You *must* use spaces, never tabs. Usually, it is 2 spaces per level of indentation.
-* *Example:* ```yaml
+* *Example:* 
+```
+```yaml
 server:
 ports:
 - 80
 - 443
+```
 
 
 
