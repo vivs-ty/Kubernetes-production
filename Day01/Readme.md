@@ -39,7 +39,7 @@ While namespaces dictate visibility, cgroups dictate consumption. cgroups preven
 **C. The Container Filesystem: chroot, pivot_root, and OverlayFS**
 To give an isolated process the appearance of running inside an entirely distinct operating system distribution (e.g., Alpine, Ubuntu), it requires a dedicated root filesystem.
 
-- **`pivot_root` vs. `chroot`:** While chroot simply changes the root directory for the current process, it leaves old file systems accessible via relative path traversal vulnerabilities. Containers utilize pivot_root, a more secure system call that moves the current root mount point to a temporary directory and unmounts the old root, cleanly swapping the entire root filesystem layout.
+- **`pivot_root` vs. `chroot`:** While chroot simply changes the root directory for the current process, it leaves old file systems accessible via relative path traversal vulnerabilities. Containers utilize `pivot_root`, a more secure system call that moves the current root mount point to a temporary directory and unmounts the old root, cleanly swapping the entire root filesystem layout.
 
 - **OverlayFS Mechanics:** A union filesystem that layers multiple directories to expose a single, unified view to the container process.
 
@@ -48,12 +48,12 @@ To give an isolated process the appearance of running inside an entirely distinc
        - **`Copy-on-Write (CoW) Lifecycle`:** If a containerized application attempts to modify an existing file residing within the read-only `LowerDir`, the kernel transparently intercepts the operation, copies the file up to the `UpperDir`, and executes the modifications there. The original base layer remains pristine and untouched.
 
 2. **Docker Architecture & The Open Container Initiative (OCI)**
-Historically, Docker was a monolithic toolchain responsible for image building, packaging, running containers, and managing storage/networks. Today, modern infrastructure relies on modular, standardized components governed by the Open Container Initiative (OCI).
+Historically, Docker was a monolithic toolchain responsible for image building, packaging, running containers, and managing storage/networks. Today, modern infrastructure relies on modular, standardized components governed by the **Open Container Initiative (OCI)**.
 
 **A. The Separation of Concerns**
-**OCI Image Specification:** Defines the structural layout of a container image tarball, its configuration manifests, and layer composition.
+- **OCI Image Specification:** Defines the structural layout of a container image tarball, its configuration manifests, and layer composition.
 
-**OCI Runtime Specification:** Details how an unpacked image must be mounted and executed as a set of Linux namespaces and cgroups.
+- **OCI Runtime Specification:** Details how an unpacked image must be mounted and executed as a set of Linux namespaces and cgroups.
 
 **B. The Production Container Runtime Stack**
 ```
@@ -68,18 +68,18 @@ Historically, Docker was a monolithic toolchain responsible for image building, 
           ▼ (Kernel System Calls)
  [ Isolated Process ]
  ```
-**High-Level Container Runtimes (containerd, CRI-O):** These daemons manage the lifecycle of images, handle network attachments, supervise storage mounts, and expose a gRPC API that implements the Kubernetes Container Runtime Interface (CRI).
+- **High-Level Container Runtimes (`containerd`, `CRI-O`):** These daemons manage the lifecycle of images, handle network attachments, supervise storage mounts, and expose a gRPC API that implements the Kubernetes **Container Runtime Interface (CRI)**.
 
-**Low-Level Container Runtimes (runc):** A transient, short-lived CLI tool. It accepts an OCI-compliant runtime configuration from containerd or CRI-O, executes the necessary Linux kernel system calls (clone, unshare, setns, pivot_root), hands off execution to the container entrypoint, and immediately exits.
+- **Low-Level Container Runtimes (`runc`):** A transient, short-lived CLI tool. It accepts an OCI-compliant runtime configuration from `containerd` or `CRI-O`, executes the necessary Linux kernel system calls (`clone`, `unshare`, `setns`, `pivot_root`), hands off execution to the container entrypoint, and immediately exits.
 
 3. **The Declarative Paradigm & The Architecture of "Why?"**
-Traditional infrastructure operations are imperative: you execute precise, sequential commands to alter a system's state (e.g., SSH into a host, pull a package, configure a file, restart a system daemon). If a step fails, the system enters an ambiguous, unmanaged state.
+Traditional infrastructure operations are **imperative**: you execute precise, sequential commands to alter a system's state (e.g., SSH into a host, pull a package, configure a file, restart a system daemon). If a step fails, the system enters an ambiguous, unmanaged state.
 
-Kubernetes operates strictly on the Declarative Paradigm:
+Kubernetes operates strictly on the **Declarative Paradigm**:
 
-Desired State vs. Actual State: Instead of instructing the platform how to build an environment, you define exactly what the final environment must look like using static, version-controlled YAML declarations (manifests).
+- **Desired State vs. Actual State:** Instead of instructing the platform how to build an environment, you define exactly what the final environment must look like using static, version-controlled YAML declarations (manifests).
 
-The Continuous Reconciliation Loop: The fundamental architectural pattern governing Kubernetes. Control loops continually observe the actual state of the infrastructure, compare it against the desired state stored in the cluster database, calculate the variance, and execute corrective measures to converge the system back toward the desired configuration.
+- **The Continuous Reconciliation Loop:** The fundamental architectural pattern governing Kubernetes. Control loops continually observe the actual state of the infrastructure, compare it against the desired state stored in the cluster database, calculate the variance, and execute corrective measures to converge the system back toward the desired configuration.
 ```
        ┌────────────────────────┐
        │   Define Desired State │ (YAML Manifest)
@@ -113,11 +113,14 @@ YAML is designed to be easily read by humans while remaining easily parsed by ma
 
 * **Indentation (Hierarchy):** YAML does not use brackets `{}` to show nested data like JSON does. It relies entirely on indentation.
 * **Crucial Rule:** You *must* use spaces, never tabs. Usually, it is 2 spaces per level of indentation.
-* *Example:* ```yaml
+* *Example:* 
+```
+```yaml
 server:
 ports:
 - 80
 - 443
+```
 
 
 
