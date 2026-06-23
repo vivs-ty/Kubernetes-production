@@ -1,4 +1,4 @@
-git
+
 ---
 
 # Day 1: Linux Isolation Fundamentals, Containerization, and the Genesis of Orchestration
@@ -155,5 +155,14 @@ These tools come from different ecosystems that strongly favor `snake_case` (whe
 * **Bash:** Bash is the old-school UNIX shell. Traditionally, environment variables are `SCREAMING_SNAKE_CASE` (e.g., `DATABASE_URL`), and standard variables are standard `snake_case`.
 
 **The Takeaway:** When writing YAML, you always have to ask yourself, *"Who is reading this?"* If you pass `image_pull_policy: Always` to Kubernetes, it will reject it. If you pass `vpcSecurityGroupIds` to Terraform, it will fail.
+
+### Kubernetes
+
+**`Kubernetes`** is a set of controllers, which is a great way to think about its "brain" (the Control Plane). Kubernetes is inherently declarative. You tell it what you want (the desired state), and its controllers run in continuous loops, constantly comparing the actual state of the cluster to your desired state, making adjustments to fix any discrepancies.
+
+   - `Container`: Spot on. It packages the code, runtime, and configurations into a single, portable unit. Because it contains its own environment, it eliminates the "it works on my machine" problem and prevents vendor lock-in. The `Dockerfile` acts as the blueprint.
+   - `Pod`: Exactly. It is the smallest deployable computing unit in Kubernetes. While a pod can hold multiple containers that need to share resources (like a main application container and a logging "sidecar"), the one-container-per-pod model is the most common.
+   - `Node`: Yes, this is the worker machine (which can be a physical server or a virtual machine). It provides the actual compute power, memory, and networking resources for the pods to run.
+   - `Cluster`: The overarching system. It pools the resources of multiple nodes together so they act as a single, massive, fault-tolerant machine.
 
 ---
