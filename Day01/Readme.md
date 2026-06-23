@@ -1,4 +1,4 @@
-git
+
 ---
 
 # Day 1: Linux Isolation Fundamentals, Containerization, and the Genesis of Orchestration
@@ -155,5 +155,10 @@ These tools come from different ecosystems that strongly favor `snake_case` (whe
 * **Bash:** Bash is the old-school UNIX shell. Traditionally, environment variables are `SCREAMING_SNAKE_CASE` (e.g., `DATABASE_URL`), and standard variables are standard `snake_case`.
 
 **The Takeaway:** When writing YAML, you always have to ask yourself, *"Who is reading this?"* If you pass `image_pull_policy: Always` to Kubernetes, it will reject it. If you pass `vpcSecurityGroupIds` to Terraform, it will fail.
+
+### Kubernetes
+
+**`Kubernetes`:** Kubernetes is a set of controllers, which is a great way to think about its "brain" (the Control Plane). Kubernetes is inherently declarative. You tell it what you want (the desired state), and its controllers run in continuous loops, constantly comparing the actual state of the cluster to your desired state, making adjustments to fix any discrepancies.
+
 
 ---
