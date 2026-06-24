@@ -38,3 +38,20 @@ Standardizes the output or metrics interfaces of heterogeneous application envir
 
 Production Example: You possess multiple legacy services that export application performance metrics in entirely different text formats. An adapter container can be deployed inside the Pod to consume these raw outputs, transform them into standard Prometheus exposition formats, and present a uniform /metrics endpoint to the cluster scraping infrastructure.
 
+
+3. Specialized Container Execution Classifications
+A. Init Containers
+Init Containers run sequentially to completion before any of the primary application containers are allowed to initialize. If an init container fails, the kubelet restarts the entire Pod loop until the init container terminates with an explicit Exit Code 0.
+
+Use Cases: Performing heavy database schema migrations, executing complex configuration generation scripts, or performing blocking checks to guarantee that external dependency systems (like a backend API or message broker) are fully available online before launching the main app.
+
+Resource Calculations: The effective resource requests/limits of a Pod are calculated as the maximum of the resource requests of the init containers versus the sum of the requests of the main application containers, because init containers and application containers never run concurrently.
+
+B. Ephemeral Containers (Advanced Troubleshooting)
+A major challenge in secure production environments is that container images are stripped of all diagnostic tools (shell, curl, iproute2) to minimize the attack surface. If a stripped container enters an unstable state or deadlocks, engineers cannot easily debug it.
+
+Ephemeral Containers solve this. They are injected dynamically into an already active, running Pod using the specialized kubectl debug API.
+
+Mechanism: The ephemeral container is injected directly into the namespaces of the target Pod, allowing an engineer to run diagnostic utilities against the active application processes, memory spaces, and network interfaces without restarting or modifying the original container environment.
+
+---
