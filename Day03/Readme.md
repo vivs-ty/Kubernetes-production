@@ -20,3 +20,21 @@ Network Cohabitation: Every container within a single Pod shares an identical ne
 
 Shared Volume Space: Containers inside the same Pod share the same storage volume declarations. By mounting a localized emptyDir volume, separate containers can read and write to the exact same directory structure at native memory speeds.
 
+2. Multi-Container Topologies
+While the vast majority of production Pods follow a single-container pattern, multi-container topologies are critical for cross-cutting architectural concerns.
+
+A. The Sidecar Pattern
+An auxiliary container that enhances or extends the functionality of the primary application container without modifying the application's core codebase.
+
+Production Example: A primary web application writes access logs to a local disk directory. A sidecar container (like a Filebeat or Fluentbit agent) runs concurrently in the same Pod, tailing that exact log directory and streaming the entries out to a centralized elasticsearch cluster.
+
+B. The Ambassador Pattern
+An explicit proxy container that abstracts away complex networking connectivity concerns for the primary container.
+
+Production Example: A legacy application container needs to read and write to a highly distributed, sharded database architecture. An ambassador container running Envoy can be embedded alongside the application. The application simply connects to localhost:5432, and the ambassador handles the complex database routing, circuit breaking, and retry logic transparently.
+
+C. The Adapter Pattern
+Standardizes the output or metrics interfaces of heterogeneous application environments.
+
+Production Example: You possess multiple legacy services that export application performance metrics in entirely different text formats. An adapter container can be deployed inside the Pod to consume these raw outputs, transform them into standard Prometheus exposition formats, and present a uniform /metrics endpoint to the cluster scraping infrastructure.
+
