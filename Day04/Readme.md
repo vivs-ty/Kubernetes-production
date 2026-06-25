@@ -70,3 +70,46 @@ When a service named payment-service is defined inside a namespace named finance
 payment-service.finance.svc.cluster.local
 
 Any pod running within the cluster can address traffic directly to this FQDN. CoreDNS resolves it to the private ClusterIP address, abstracting away network mutations completely.
+
+
+3. Resilient Health Systems: Probes and Lifecycle States
+To maintain high availability without manual operational interventions, Kubernetes requires a real-time understanding of container health. Probes are executed locally against container runtimes by the kubelet.
+
+A. Liveness Probes
+Purpose: Evaluates whether a container process has entered a non-recoverable deadlock or frozen state.
+
+Action: If a liveness probe fails, the kubelet terminates the container process and triggers its designated restart policy loop.
+
+B. Readiness Probes
+Purpose: Evaluates whether a container is fully prepared to accept live network traffic.
+
+Action: If a readiness probe fails, the Service controller immediately removes the target Pod's IP address from the endpoints lists of all matching Services. No user traffic is routed to that Pod until the probe returns a successful status.
+
+C. Startup Probes
+Purpose: Protects slow-starting, legacy applications during initial boot cycles.
+
+Action: If a startup probe is defined, all other liveness and readiness probes are completely disabled until the startup probe achieves success. This prevents the kubelet from prematurely killing a container that is simply performing intensive initialization tasks.
+
+4. Configuration Engines: ConfigMaps and Secrets
+A. ConfigMaps
+Store non-sensitive configuration parameters as plain-text key-value pairs. They decouple your application configuration from your immutable container images.
+
+B. Secrets
+Designed to store sensitive assets (e.g., API keys, database passwords, TLS certificates).
+
+The Security Reality Check: By default, standard Kubernetes Secrets are merely Base64 encoded, not encrypted. Anyone with RBAC access to view the secret manifest can easily decode it:
+
+echo "dXNlcm5hbWU=" | base64 --decode
+
+Production Hardening: To secure production Secrets, you must implement Encryption at Rest within the kube-apiserver configuration, mapping it to a dedicated external Key Management Service (KMS) provider (like AWS KMS, HashiCorp Vault, or Google KMS) to handle the underlying envelope encryption keys.
+
+C. Injection Mechanics: Environment Variables vs. Mounted Volumes
+Environment Variables: Config data is injected at container initialization.
+
+Risk: Environment variables can easily leak into crash dumps, application logs, or process inspection paths (/proc/$PID/environ).
+
+Mounted Volumes: ConfigMaps/Secrets are projected into the container filesystem as dynamic, virtual files.
+
+Advantage: Atomic updates. If you modify a ConfigMap or Secret in the API server, Kubernetes updates the mounted files inside the container on the fly without restarting the Pod. The application code can watch these files for changes and reload its configuration dynamically.
+
+---
