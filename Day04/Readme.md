@@ -26,7 +26,7 @@ The ReplicaSet is an active control loop that enforces standard scaling metrics 
   [ ReplicaSet v2 ] ◄── (Scale: 3 Replicas) ──► [ Pod ] [ Pod ] [ Pod ]
 
   ```
-  
+
 B. Rollout Strategies: Detailed Technical Mechanics
 1. RollingUpdate Strategy
 The default rollout pattern. It gradually replaces old pod versions with new pod versions, achieving zero-downtime deployments. This strategy is strictly governed by two parameters:
@@ -52,3 +52,21 @@ A destructive rollout pattern. The deployment immediately scales the active, leg
 
 Production Implication: This causes cluster-wide application downtime during the update window. However, it guarantees that two distinct versions of the application code never run concurrently, which is often a strict requirement for applications with legacy state constraints or non-backward-compatible database schemas.
 
+2. Cluster Networking & Service Abstractions
+Every Pod receives a unique, routable IP address within the internal cluster network. However, Pods are ephemeral; they change IPs every time they restart or scale. Services provide stable network endpoints that abstract away this volatility.
+
+A. Service Communication Topologies
+ClusterIP: The default service classification. It assigns a stable, internal-only virtual IP address from the cluster's private network range. Traffic directed to this IP is intercepted by kube-proxy and distributed across the backend Pod endpoints via random load-balancing rules. It is inaccessible from outside the physical cluster network boundaries.
+
+NodePort: Extends ClusterIP by opening a static, identical port boundary across every single worker node interface within the cluster (by default, within the range 30000–32767). External clients can route packets to any physical node IP address on that specific port, and the node automatically forwards the traffic to the underlying service endpoint.
+
+LoadBalancer: Integrates directly with cloud infrastructure controllers. When declared, Kubernetes automatically triggers the host cloud provider's API to provision a physical external load balancer device (e.g., an AWS ALB or GCP Network Load Balancer), assigning an external IP that routes traffic inward directly to the cluster's underlying NodePort or ClusterIP topology.
+
+B. CoreDNS Internals
+Every Kubernetes cluster features an internal cluster-wide DNS server called CoreDNS. CoreDNS continuously maps Services to local DNS entries.
+
+When a service named payment-service is defined inside a namespace named finance, CoreDNS instantiates a fully qualified domain name (FQDN):
+
+payment-service.finance.svc.cluster.local
+
+Any pod running within the cluster can address traffic directly to this FQDN. CoreDNS resolves it to the private ClusterIP address, abstracting away network mutations completely.
