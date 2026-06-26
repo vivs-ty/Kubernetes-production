@@ -60,3 +60,30 @@ clusters: The endpoint URLs and root CA certificates of the target Kubernetes AP
 users: Authentication credentials (client certificates, access tokens, or OIDC configuration blocks).
 
 contexts: Links a specific user and cluster profile to a default namespace.
+
+3. The Storage Engine Architecture
+Kubernetes uses the Container Storage Interface (CSI) to decouple its core control plane from external storage vendor APIs.
+
+```
+[ Pod ] ──► [ PersistentVolumeClaim (PVC) ]
+                        │
+                        ▼ (Matches Criteria / StorageClass)
+            [ PersistentVolume (PV) ]
+                        │
+                        ▼ (CSI Plugin Interface)
+      [ Physical Storage: Cloud EBS / SAN / Ceph ]
+
+```
+
+A. PersistentVolumes (PV)
+A low-level cluster resource that represents a piece of physical storage provisioned in the real world (e.g., an AWS EBS volume, a Google Persistent Disk, or a local NFS mount). It exists independently of any individual Pod's lifecycle.
+
+B. PersistentVolumeClaims (PVC)
+A developer's request for storage. A PVC defines specific requirements (e.g., "I need 50GB of storage with ReadWriteOnce access"). The control plane automatically searches for an available PersistentVolume that matches the claim's criteria and binds them together.
+
+C. Dynamic Provisioning via StorageClasses
+Manually pre-provisioning hundreds of static PersistentVolumes is an operational bottleneck. Production environments utilize StorageClasses to enable automated dynamic storage allocation:
+
+When a developer submits a new PVC that references a StorageClass, the cluster's CSI driver transparently calls the underlying cloud or storage API, provisions the physical storage volume on the fly, instantiates a corresponding PersistentVolume object, and binds it to the PVC automatically.
+
+---
