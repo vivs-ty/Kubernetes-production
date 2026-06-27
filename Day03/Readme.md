@@ -5,7 +5,7 @@
 
 ---
 
-The Pod is the foundational building block of the Kubernetes resource hierarchy. You never deploy individual containers directly into a cluster; you always embed them within a Pod context.
+*The Pod is the foundational building block of the Kubernetes resource hierarchy. You never deploy individual containers directly into a cluster; you always embed them within a Pod context.*
 
 1. The Anatomy of a Pod
 A Pod is a logical deployment wrapper that hosts one or more closely coupled containers. The structural superpower of a Pod is that all containers residing within it share a set of identical Linux namespaces.
