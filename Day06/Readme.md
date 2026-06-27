@@ -44,3 +44,13 @@ When an Ingress rule is added or updated (e.g., route traffic for api.company.co
 It bypasses traditional kube-proxy service routing entirely to reduce latency. Instead, it queries the API server for the exact individual backend IP addresses matching the service (Endpoints) and injects those raw IP addresses directly into its internal proxy configuration file (e.g., rewriting the NGINX upstream block).
 
 It dynamically reloads its proxy configuration in memory, ready to route live traffic.
+
+
+3. Cryptographic Operations: TLS Termination and Cert-Manager
+Ingress controllers act as the termination point for SSL/TLS connections to minimize the processing overhead on backend application pods.
+
+Secret Association: You upload your domain's private key and X.509 certificate as a K8s Secret. The Ingress manifest references this Secret in its tls configuration block. The Ingress controller reads the keys and handles the cryptographic handshake with the client.
+
+Automated Lifecycle Management via Cert-Manager: In production, manually renewing certificates is an operational risk. Cert-Manager runs as an internal controller that extends the K8s API. It watches Ingress objects for specific annotations. If a new domain is detected, Cert-Manager automates the validation process with a Certificate Authority (like Let's Encrypt) using ACME protocols (HTTP-01 or DNS-01 challenges), issues the valid certificate, saves it as a Secret, and handles renewals automatically before expiration.
+
+---
