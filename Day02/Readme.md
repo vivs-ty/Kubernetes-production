@@ -5,7 +5,7 @@
 
 ---
 
-A Kubernetes cluster is a distributed system consisting of master nodes (the Control Plane) that manage system state and worker nodes that execute application processes.
+*A Kubernetes cluster is a distributed system consisting of master nodes (the Control Plane) that manage system state and worker nodes that execute application processes.*
 
 ```
 +---------------------------------------------------------------------------------+
