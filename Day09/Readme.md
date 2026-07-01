@@ -8,6 +8,7 @@
 *Observability in a distributed system means moving beyond basic health checks to gain deep insights into internal cluster states, request pathways, and resource performance bottlenecks.*
 
 1. The Four Pillars of Observability
+
 A. Metrics
 Numeric, aggregatable time-series data points indicating the performance of infrastructure elements over time.
 
@@ -27,4 +28,20 @@ D. Profiling
 Continuous, low-overhead run-time analysis of code execution, memory allocation pathways, and CPU thread usage.
 
 Production Implementation: Tools like Parca or Pixie leverage eBPF to safely sample system call stacks directly inside the kernel at regular intervals. This allows engineers to identify the exact lines of code causing memory leaks or high CPU utilization in production environments without needing to modify application code or inject heavy debugging agents.
+
+2. Crucial Production Metrics to Monitor
+To protect a cluster from catastrophic failure, you must continuously monitor four core components:
+
+
+```
+# Critical Metrics Focus Matrix
+Infrastructure:
+  - node_memory_working_set_bytes  # True memory consumption (excludes cached pages)
+  - etcd_disk_wal_fsync_duration_seconds # Disk write latency for consensus health
+Control Plane:
+  - apiserver_request_duration_seconds   # Latency profile of the central REST API
+Workloads:
+  - container_cpu_cfs_throttled_seconds  # Indicates if CPU limits are too restrictive
+
+```
 
