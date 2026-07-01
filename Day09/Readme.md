@@ -45,3 +45,10 @@ Workloads:
 
 ```
 
+- Node Saturated States (container_memory_working_set_bytes): Evaluates true memory usage by excluding temporary disk cache pages. If this value approaches the physical limits of the host node, the kernel will trigger an active OOM eviction phase.
+
+- API Server Request Latency (apiserver_request_duration_seconds): Tracks the response time of the API server's REST endpoints. High latency here degrades cluster control loops, leading to slow pod scheduling and delayed scaling actions.
+
+- etcd Write Durations (etcd_disk_wal_fsync_duration_seconds): Tracks the latency of committing write-ahead logs (WAL) to disk. If disk I/O bottlenecks cause this metric to exceed 10ms, etcd node synchronization will degrade, potentially triggering leader reelection loops that can destabilize the entire cluster.
+
+- Container CPU Throttling (container_cpu_cfs_throttled_seconds): Indicates the duration for which a container's execution was actively throttled by the kernel scheduler. High throttling values mean your configured CPU limits are too restrictive, directly degrading application performance even if the underlying host node has idle CPU capacity.
