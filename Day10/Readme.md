@@ -73,3 +73,11 @@ Restart the kubelet system service to load the new version.
 
 Execute an uncordon on the node to restore it to active duty, allowing the scheduler to place workloads onto it once again. Repeat this lifecycle across the remaining worker nodes.
 
+3. Cluster Performance Benchmarking
+To ensure a cluster can handle production loads, you must benchmark its performance under artificial stress to identify architectural bottlenecks.
+
+API Server Stress Testing: Using utilities like clusterloader2, you simulate massive write and read loads against the kube-apiserver by rapidly creating, listing, and destroying thousands of dummy objects. This test measures the latency distribution of API requests and validates that control plane performance remains stable under load.
+
+Network Performance Validation: Using benchmarking engines like iperf3 or netperf deployed within test container pods, you measure the true network throughput and packet latency between different worker nodes, different namespaces, and across various network access policies. This allows you to measure the latency overhead introduced by your CNI implementation or service mesh proxy layers.
+
+---
