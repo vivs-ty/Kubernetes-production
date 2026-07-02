@@ -50,28 +50,21 @@ The Infallible Sequential Execution Order
 
 ```
 
-1. Upgrade the Primary Control Plane Components
+   1. Upgrade the Primary Control Plane Components
 Always upgrade the master node management components first using your cluster deployment tool (e.g., kubeadm). The components must be upgraded in a strict sequence:
+   - `kube-apiserver`: The API server must be upgraded first because it maintains backward compatibility with older components (typically up to two minor versions behind), allowing older worker node kubelets to continue communicating with it during the transition.
+   - `etcd` (if upgraded in tandem).
+   - `kube-controller-manager` and `kube-scheduler`.
 
-kube-apiserver: The API server must be upgraded first because it maintains backward compatibility with older components (typically up to two minor versions behind), allowing older worker node kubelets to continue communicating with it during the transition.
-
-etcd (if upgraded in tandem).
-
-kube-controller-manager and kube-scheduler.
-
-2. Upgrade Additional Control Plane Nodes
+   2. Upgrade Additional Control Plane Nodes
 If running a high-availability control plane topology, proceed to upgrade the remaining master nodes to bring them up to parity with the primary instance.
 
-3. Upgrade Worker Nodes (Rolling Node Pool Update)
+   3. Upgrade Worker Nodes (Rolling Node Pool Update)
 Upgrade worker nodes sequentially one by one using the Cordon and Drain workflow:
-
-Execute a cordon and drain on the target worker node to safely evict active workloads.
-
-Upgrade the node's local component packages: the kubeadm utility, the network traffic cop kube-proxy, and the node agent kubelet.
-
-Restart the kubelet system service to load the new version.
-
-Execute an uncordon on the node to restore it to active duty, allowing the scheduler to place workloads onto it once again. Repeat this lifecycle across the remaining worker nodes.
+   - Execute a cordon and drain on the target worker node to safely evict active workloads.
+   - Upgrade the node's local component packages: the kubeadm utility, the network traffic cop kube-proxy, and the node agent kubelet.
+   - Restart the kubelet system service to load the new version.
+   - Execute an uncordon on the node to restore it to active duty, allowing the scheduler to place workloads onto it once again. Repeat this lifecycle across the remaining worker nodes.
 
 3. Cluster Performance Benchmarking
 To ensure a cluster can handle production loads, you must benchmark its performance under artificial stress to identify architectural bottlenecks.
