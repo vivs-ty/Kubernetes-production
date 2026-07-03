@@ -51,4 +51,35 @@ Static image scanners (like Trivy) only inspect code dependencies before deploym
 
 `Tetragon Mechanics`: Leverages eBPF to perform runtime security enforcement directly within the kernel space. Instead of merely alerting on security anomalies after they occur, Tetragon can be configured to actively block malicious operations inside the kernel, terminating offending container processes instantly before they can compromise the host node.
 
+3. The Production Troubleshooting Matrix
+When workloads fail, engineers must follow a systematic troubleshooting workflow based on the Pod's lifecycle state.
 
+A. The Pod is stuck in Pending
+Root Cause: The Pod cannot be scheduled onto any node in the cluster.
+
+- Troubleshooting Workflow: Execute `kubectl describe pod <pod-name>` and scroll down to the Events block.
+
+- Look for scheduling predicate failures: Insufficient CPU, Insufficient Memory, or nodes had untolerated taint.
+
+- Check if a PersistentVolumeClaim requested by the pod is unbound, which will block scheduling until suitable storage is provisioned.
+
+B. The Pod is stuck in CrashLoopBackOff
+Root Cause: The scheduler placed the pod onto a node, the container runtime successfully launched the process, but the application code crashed immediately during execution. The kubelet attempts to restart the container, but it continues to crash in a loop.
+
+- Troubleshooting Workflow: * Query the container's standard output logs: `kubectl logs <pod-name>`.
+
+- If the log is blank because the container crashed before writing to stdout, query the previous failed execution instance log: `kubectl logs <pod-name> --previous`.
+
+- Common root causes include missing mandatory environment variables, database connection timeouts, syntax errors in configuration files, or failing application initialization checks.
+
+C. The Pod is stuck in ImagePullBackOff
+Root Cause: The container runtime cannot retrieve the requested image from the registry.
+
+- Troubleshooting Workflow: Inspect the pod events via `kubectl describe`.
+
+- Verify there are no typographical errors in the image repository name or the version tag.
+
+- Verify that the cluster has valid authentication credentials to pull from the target registry by ensuring the appropriate imagePullSecrets array is defined within the Pod specification.
+
+
+---
