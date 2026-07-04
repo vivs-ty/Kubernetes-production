@@ -36,3 +36,13 @@ The Architectural Rules of a StatefulSet
 
 - **Ordered Deployment and Scaling:** By default, StatefulSets launch pods sequentially in ascending ordinal order (0, then 1, then 2). The system waits until db-0 is completely healthy and running before initializing db-1. Scaling down follows the reverse order, ensuring graceful cluster termination patterns.
 
+2. Cloud Infrastructure Cost Optimization Strategies
+Running massive clusters in public cloud environments can lead to significant infrastructure overhead if resources are not actively managed and right-sized.
+
+- **Real-Time Allocation Mapping via OpenCost:** Deployed as an internal metrics engine, OpenCost monitors the resource requests and actual usage of all workloads across the cluster. It maps these resource metrics against your cloud provider's real-time billing APIs to calculate exactly how much money each individual Namespace, Deployment, or Pod costs per hour, allowing engineering teams to identify underutilized resources and misallocated capacity.
+
+- **Workload Right-Sizing:** Engineers frequently configure container resource requests based on rough estimates, leading to clusters filled with underutilized containers that waste expensive capacity. By analyzing long-term historical utilization metrics from Prometheus or the VPA, you can safely tune resource allocations down to match actual consumption patterns, significantly increasing node packing density.
+
+- **Spot Instance Node Pools:** You can reduce cloud infrastructure costs by utilizing Spot Instances (spare cloud capacity sold at deep discounts) for worker node pools. Because spot instances can be reclaimed by the cloud provider with minimal notice, you use these pools exclusively for fault-tolerant, stateless workloads, while protecting core stateful services on standard on-demand node pools.
+
+---
