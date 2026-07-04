@@ -28,11 +28,11 @@ StatefulSet Model (Data on Kubernetes):
 ```
 
 The Architectural Rules of a StatefulSet
-Stable, Predictable Naming Conventions: Pods are assigned unique, deterministic names using a zero-based ordinal index (e.g., db-0, db-1, db-2). If db-1 crashes, its replacement will be named exactly db-1.
+- **Stable, Predictable Naming Conventions:** Pods are assigned unique, deterministic names using a zero-based ordinal index (e.g., db-0, db-1, db-2). If db-1 crashes, its replacement will be named exactly db-1.
 
-Stable Network Identity: StatefulSets require a companion Headless Service (a service manifest with clusterIP: None). CoreDNS uses this headless service to generate unique DNS A-records pointing directly to the individual Pod IPs (e.g., db-0.postgres-service.default.svc.cluster.local). This allows distributed database instances to reliably discover and communicate with their peers to coordinate cluster replication.
+- **Stable Network Identity:** StatefulSets require a companion Headless Service (a service manifest with clusterIP: None). CoreDNS uses this headless service to generate unique DNS A-records pointing directly to the individual Pod IPs (e.g., db-0.postgres-service.default.svc.cluster.local). This allows distributed database instances to reliably discover and communicate with their peers to coordinate cluster replication.
 
-Dedicated Persistent Storage Bindings: StatefulSets introduce a volumeClaimTemplates array. When you scale a StatefulSet, the controller automatically provisions a dedicated, separate PersistentVolumeClaim for each individual pod instance. If db-2 is evicted or moved to another worker node, the storage engine ensures that the exact same physical volume (pv-data-db-2) is re-attached to the new host node, preserving data integrity.
+- **Dedicated Persistent Storage Bindings:** StatefulSets introduce a volumeClaimTemplates array. When you scale a StatefulSet, the controller automatically provisions a dedicated, separate PersistentVolumeClaim for each individual pod instance. If db-2 is evicted or moved to another worker node, the storage engine ensures that the exact same physical volume (pv-data-db-2) is re-attached to the new host node, preserving data integrity.
 
-Ordered Deployment and Scaling: By default, StatefulSets launch pods sequentially in ascending ordinal order (0, then 1, then 2). The system waits until db-0 is completely healthy and running before initializing db-1. Scaling down follows the reverse order, ensuring graceful cluster termination patterns.
+- **Ordered Deployment and Scaling:** By default, StatefulSets launch pods sequentially in ascending ordinal order (0, then 1, then 2). The system waits until db-0 is completely healthy and running before initializing db-1. Scaling down follows the reverse order, ensuring graceful cluster termination patterns.
 
