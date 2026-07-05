@@ -102,3 +102,11 @@ It sets up automated backup schedules with external storage bucket systems.
 
 If a database instance breaks or experiences configuration drift, the operator catches the variation within its reconciliation loop and repairs the database state automatically without requiring human intervention.
 
+3. The Aggregated API Layer
+For ultra-advanced use cases where standard CRD functionality is insufficient, you can extend the platform using the Aggregated API Layer.
+
+Instead of storing custom definitions within the cluster's main etcd database, you write and deploy a completely independent, standalone API Server binary running its own isolated backend storage engine.
+
+You submit an APIService registration manifest to the core Control Plane. When a client makes a request to the main kube-apiserver targeting your custom API path, the primary server routes the connection down to your custom API server extension transparently. This pattern is utilized by high-throughput components like the core Kubernetes Metrics Server, ensuring massive volumes of real-time metrics data do not overload the primary cluster state store.
+
+---
