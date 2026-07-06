@@ -24,4 +24,9 @@
 |  | Cert-Manager | Automates the complete lifecycle of X.509 TLS certificates, handling automated provisioning, validation, and renewal via integration with ACME providers. |
 |  | Envoy | High-performance service proxy utilized as the standardized data plane interface by modern service mesh solutions. |
 |  | Istio | Comprehensive Service Mesh solution providing advanced traffic routing controls, strict mTLS network encryption, and rich telemetry data. |
-| 
+| **Storage & Optimization** | Rook | Storage orchestrator that automates the provisioning, configuration, and lifecycle management of distributed storage platforms (like Ceph) natively within K8s. |
+|  | KEDA | Kubernetes Event-driven Autoscaling engine that extends the HPA to scale workloads based on metrics from external sources (e.g., Kafka lag, AWS SQS queues). |
+|  | OpenCost | Real-time container-level cost allocation engine that tracks workload resource allocations against cloud provider billing models to map infrastructure spend. |
+
+
+---
