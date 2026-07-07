@@ -165,4 +165,50 @@ These tools come from different ecosystems that strongly favor `snake_case` (whe
    - `Node`: Yes, this is the worker machine (which can be a physical server or a virtual machine). It provides the actual compute power, memory, and networking resources for the pods to run.
    - `Cluster`: The overarching system. It pools the resources of multiple nodes together so they act as a single, massive, fault-tolerant machine.
 
+### 4. Container Images, Dockerfiles, and the Lifecycle of a Running Container
+
+A container image is not the same thing as a running container. The image is the static blueprint, while the container is a running instance created from that blueprint.
+
+- **Image vs. Container:** An image is a read-only filesystem snapshot plus metadata describing how to start the application. A container is a live process created from that image.
+- **Dockerfile Basics:** The Dockerfile is the recipe used to build an image. Common instructions include `FROM` (base image), `COPY` or `ADD` (files into the image), `RUN` (install dependencies), `CMD` or `ENTRYPOINT` (define what process should start), and `EXPOSE` (document which ports the app listens on).
+- **Image Layers:** Images are built as stacked layers. This makes them efficient to store and share because unchanged layers can be reused between builds and containers.
+- **Container Lifecycle:** A container normally moves through states such as `created`, `running`, `paused`, `stopped`, and `removed`. Understanding this lifecycle helps troubleshoot startup issues and cleanup operations.
+- **Practical Commands:** Typical commands include `docker build`, `docker run`, `docker ps`, `docker logs`, `docker exec`, and `docker rm`.
+
+### 5. Why Orchestration Exists at All
+
+Containers solve packaging problems, but they do not automatically solve distributed-system problems. Once you run multiple services across many machines, you need orchestration to handle:
+
+- **Placement:** Decide which machine should run which workload.
+- **Reliability:** Restart failed containers and move work away from unhealthy nodes.
+- **Scaling:** Increase or decrease replicas as demand changes.
+- **Updates:** Roll out new versions without downtime.
+- **Networking and Discovery:** Let services find each other reliably.
+
+This is the reason Kubernetes exists: it turns a set of independent containers into a manageable, self-healing distributed system.
+
+### Practical Example: Build and Run a Container
+```mermaid
+flowchart LR
+    A[Developer writes Dockerfile] --> B[Build image]
+    B --> C[Image layers]
+    C --> D[Run container]
+    D --> E[Process inside isolated namespaces]
+```
+
+Example:
+- `docker build -t myapp .`
+- `docker run -p 8080:80 myapp`
+- The image is the immutable blueprint; each run creates a new container instance from that blueprint.
+
+### Quick Summary
+- Containers isolate processes using Linux namespaces and cgroups.
+- Images are immutable blueprints; containers are running instances.
+- Kubernetes was created to orchestrate containers across many machines.
+
+### Key Commands
+- `docker build -t myapp .`
+- `docker run -p 8080:80 myapp`
+- `docker ps`
+
 ---

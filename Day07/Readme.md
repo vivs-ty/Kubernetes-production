@@ -82,4 +82,50 @@ Mechanism: The VPA tracks container behavior over time. If it identifies that a 
 
 Production Constraint: By default, updating container resource requests requires modifying the active Pod specification, which forces the kubelet to restart the container process.
 
+3. Observability and Monitoring Foundations
+A cluster is only manageable when you can measure what is happening inside it.
+
+A. Metrics, Logs, and Traces
+- **Metrics** provide quantitative signals such as CPU usage, memory pressure, request rates, and latency.
+- **Logs** capture application and system events for debugging and audit purposes.
+- **Traces** show how a single request moves through multiple services and where latency is introduced.
+
+B. Prometheus and Grafana
+Prometheus scrapes metrics from endpoints exposed by workloads and Kubernetes components. Grafana visualizes those metrics in dashboards that help teams spot trends and anomalies.
+
+C. Common Monitoring Signals
+- Pod restarts and crash loops
+- High CPU or memory usage
+- Node pressure events
+- Failed readiness or liveness probes
+- Increasing request latency or error rates
+
+4. Practical Scheduling and Optimization Notes
+- Use resource requests and limits consistently to improve scheduling decisions and protect nodes.
+- Prefer affinity and anti-affinity rules when workloads have placement constraints or high-availability requirements.
+- Start with HPA for traffic-driven scale-out, and use VPA cautiously for workloads with stable or well-understood resource profiles.
+
+### Scheduling Decision Flow
+```mermaid
+flowchart TD
+    P[Pod request] --> F[Filter nodes]
+    F --> S[Score nodes]
+    S --> C[Pick best node]
+    C --> R[Run pod]
+```
+
+Example:
+- A GPU workload can use node affinity to land on GPU nodes.
+- A web app can use anti-affinity to stay on separate nodes for high availability.
+
+### Quick Summary
+- Scheduling is based on resource requests, labels, taints, and affinity rules.
+- Requests and limits affect both placement and QoS.
+- HPA and VPA help scale workloads dynamically.
+
+### Key Commands
+- `kubectl describe pod <pod-name>`
+- `kubectl top nodes`
+- `kubectl autoscale deployment <name> --cpu-percent=50 --min=2 --max=10`
+
 ---

@@ -81,5 +81,42 @@ Root Cause: The container runtime cannot retrieve the requested image from the r
 
 - Verify that the cluster has valid authentication credentials to pull from the target registry by ensuring the appropriate imagePullSecrets array is defined within the Pod specification.
 
+4. Security Hardening and Policy Enforcement
+Beyond the basics, production clusters require stronger control over what pods are allowed to do at runtime.
+
+A. Pod Security Admission
+Kubernetes can enforce a baseline or restricted security profile for namespaces, reducing the risk of privilege escalation, host namespace access, and unsafe capabilities.
+
+B. Image Signing and Verification
+Organizations often sign container images and enforce verification before deployment, ensuring that only trusted artifacts enter the cluster.
+
+C. Least-Privilege RBAC
+Role definitions should be narrowly scoped to the exact resources and verbs a workload or user requires, reducing the blast radius of misconfiguration or compromise.
+
+5. Troubleshooting Mindset
+The most effective Kubernetes operators debug systematically: first identify the pod state, then inspect events and logs, then validate recent configuration or rollout changes before changing anything else.
+
+### Example: Troubleshooting Workflow
+```mermaid
+flowchart TD
+    A[Pod fails] --> B[Check pod status]
+    B --> C[Inspect events and logs]
+    C --> D[Identify root cause]
+    D --> E[Fix config or deployment]
+```
+
+Example:
+- If a pod is in `CrashLoopBackOff`, check the logs first.
+- If a pod stays `Pending`, inspect scheduling constraints and PVC binding.
+
+### Quick Summary
+- NetworkPolicies segment traffic inside the cluster.
+- Falco and Tetragon provide runtime security detection.
+- Troubleshooting should follow status, events, logs, and recent changes.
+
+### Key Commands
+- `kubectl describe pod <pod-name>`
+- `kubectl logs <pod-name>`
+- `kubectl get networkpolicy -A`
 
 ---

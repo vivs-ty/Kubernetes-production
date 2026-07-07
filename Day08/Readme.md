@@ -56,4 +56,48 @@ Because the kernel already knows the exact destination socket of the target back
 
 This completely eliminates the overhead of network packet encapsulation, routing table lookups, and firewall rule evaluations, enabling near-native bare-metal packet switching speeds.
 
+3. Service Mesh Operations and Troubleshooting
+A service mesh adds powerful capabilities, but it also adds a layer that can fail or misbehave.
+
+A. Why Service Meshes Matter
+They provide consistent mTLS, traffic policies, retries, circuit breaking, and metrics collection without forcing each application team to reimplement these concerns in code.
+
+B. Common Service Mesh Issues
+- Sidecar startup or readiness failures
+- Certificate issuance or rotation problems
+- Traffic not reaching the intended backend
+- High proxy CPU or memory usage
+- Unexpected latency introduced by retries or retries loops
+
+C. Debugging Approach
+- Check the health of the control plane and data plane components.
+- Inspect proxy logs and configuration status.
+- Validate mTLS policies and destination rules.
+- Confirm that application ports and service selectors match the intended traffic path.
+
+4. eBPF and Service Mesh as a Platform Shift
+eBPF and modern service mesh designs move networking and observability closer to the kernel and the platform layer. This reduces overhead and improves visibility, making large-scale distributed systems easier to secure and operate.
+
+### Example: Service Mesh Traffic Flow
+```mermaid
+flowchart LR
+    A[Client] --> B[Envoy sidecar]
+    B --> C[Service A]
+    B --> D[Service B]
+```
+
+Example:
+- Requests are intercepted and observed by the proxy.
+- mTLS and retries can be enforced centrally without changing application code.
+
+### Quick Summary
+- Service meshes add policy, observability, and security to service-to-service traffic.
+- Sidecars and ambient modes are two common approaches.
+- eBPF improves networking efficiency at the kernel level.
+
+### Key Commands
+- `kubectl get pods -n istio-system`
+- `kubectl logs -n istio-system <pod-name>`
+- `kubectl get svc`
+
 ---

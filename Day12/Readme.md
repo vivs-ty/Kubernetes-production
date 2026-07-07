@@ -45,4 +45,52 @@ Running massive clusters in public cloud environments can lead to significant in
 
 - **Spot Instance Node Pools:** You can reduce cloud infrastructure costs by utilizing Spot Instances (spare cloud capacity sold at deep discounts) for worker node pools. Because spot instances can be reclaimed by the cloud provider with minimal notice, you use these pools exclusively for fault-tolerant, stateless workloads, while protecting core stateful services on standard on-demand node pools.
 
+3. Stateful Workload Operations and Best Practices
+Stateful systems need extra care because they are not interchangeable like stateless pods.
+
+A. Backup and Restore for StatefulSets
+Databases and other stateful services should have explicit backup and restore processes, including snapshotting of persistent volumes and testing recovery procedures.
+
+B. High Availability Patterns
+For stateful applications, high availability often means replication across multiple instances, quorum-based consensus, or multi-zone placement to avoid single points of failure.
+
+C. Capacity Planning
+Stateful workloads require careful planning for storage growth, IOPS, and network throughput, since bottlenecks in these areas affect both application correctness and performance.
+
+4. The Bigger Picture
+DoK is not just about moving databases into Kubernetes; it is about operating a reliable, cost-aware platform that can support both stateless services and stateful systems with the same control plane discipline.
+
+5. Final Synthesis: From Core Kubernetes to Production Platform
+The journey from Day 1 to Day 12 shows that Kubernetes is not just a container runtime. It is a full control plane for scheduling, networking, storage, security, observability, and lifecycle management.
+
+- Core building blocks: namespaces, pods, nodes, services, deployments, and controllers.
+- Operational discipline: resource requests, probes, autoscaling, ingress, and policy enforcement.
+- Platform maturity: observability, debugging, stateful workload support, and cost optimization.
+
+Once these concepts are understood together, Kubernetes becomes a platform for running modern applications reliably at scale.
+
+### Example: StatefulSet Lifecycle
+```mermaid
+flowchart LR
+    A[StatefulSet created] --> B[Pod db-0 starts]
+    B --> C[Pod db-1 starts]
+    C --> D[Pod db-2 starts]
+    D --> E[Stable storage and identity preserved]
+```
+
+Example:
+- Each database pod keeps its own storage and identity.
+- This is essential for PostgreSQL or Kafka-style workloads.
+
+### Quick Summary
+- StatefulSets are for stateful workloads with stable names and storage.
+- Cost optimization relies on right-sizing, visibility, and smart node strategy.
+- DoK means running data services on Kubernetes with careful operational design.
+
+### Key Commands
+- `kubectl get statefulsets`
+- `kubectl get pvc`
+- `kubectl get pods --show-labels`
+
+---
 ---

@@ -53,4 +53,45 @@ Secret Association: You upload your domain's private key and X.509 certificate a
 
 Automated Lifecycle Management via Cert-Manager: In production, manually renewing certificates is an operational risk. Cert-Manager runs as an internal controller that extends the K8s API. It watches Ingress objects for specific annotations. If a new domain is detected, Cert-Manager automates the validation process with a Certificate Authority (like Let's Encrypt) using ACME protocols (HTTP-01 or DNS-01 challenges), issues the valid certificate, saves it as a Secret, and handles renewals automatically before expiration.
 
+4. Ingress Routing Patterns and Troubleshooting
+Ingress is often the first place where traffic issues become visible, so understanding common patterns is important.
+
+A. Path-Based and Host-Based Routing
+Ingress can route requests based on the URL path or the Host header. For example, one Ingress can forward `api.example.com` to an API service and `www.example.com` to a frontend service.
+
+B. Rewrites and Backend Configuration
+Some controllers support URL rewrites or custom annotations to adjust how traffic is forwarded to backend services. This is useful when the application expects a different path structure than the external URL.
+
+C. Common Troubleshooting Checks
+- Confirm that the Ingress controller pod is running and ready.
+- Verify that the backend Service exists and has healthy endpoints.
+- Check whether the Ingress resource has a valid host and path definition.
+- Inspect controller logs when traffic is failing or certificates are not being issued.
+
+5. Ingress vs. External Load Balancers
+An Ingress is not a replacement for every load balancer. It is best for HTTP and HTTPS routing at the application layer, while a cloud load balancer is still needed to expose the ingress controller itself to the public internet.
+
+### Request Path: Ingress to Service
+```mermaid
+flowchart LR
+    Client[Browser] --> LB[Cloud Load Balancer]
+    LB --> ING[Ingress Controller]
+    ING --> SVC[Service]
+    SVC --> POD[Pod]
+```
+
+Example:
+- `api.example.com` can route to an API service.
+- `www.example.com` can route to the frontend service.
+
+### Quick Summary
+- Services expose pods internally.
+- Ingress provides external HTTP and HTTPS routing.
+- TLS termination and certificates are usually handled at the ingress layer.
+
+### Key Commands
+- `kubectl get ingress`
+- `kubectl describe ingress <name>`
+- `kubectl get svc`
+
 ---

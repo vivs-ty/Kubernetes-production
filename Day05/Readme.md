@@ -86,4 +86,46 @@ Manually pre-provisioning hundreds of static PersistentVolumes is an operational
 
 When a developer submits a new PVC that references a StorageClass, the cluster's CSI driver transparently calls the underlying cloud or storage API, provisions the physical storage volume on the fly, instantiates a corresponding PersistentVolume object, and binds it to the PVC automatically.
 
+4. Security Boundaries and Governance in Practice
+As clusters grow, governance becomes just as important as scheduling and networking.
+
+A. NetworkPolicies
+NetworkPolicies define which pods and namespaces are allowed to communicate with each other. They are a key building block for zero-trust microservice architectures.
+
+B. Pod Security Standards
+Kubernetes does not enforce a single security posture by default. Teams often adopt Pod Security Standards such as restricted, baseline, or privileged profiles to control capabilities, privilege escalation, host access, and seccomp usage.
+
+C. Admission Controllers and Policy Engines
+Admission controllers validate or mutate requests before they reach the API server's persistence layer. Tools such as OPA Gatekeeper or Kyverno can enforce organization-specific policies, such as requiring labels, disallowing privileged containers, or blocking insecure image registries.
+
+5. Operational Notes for Storage and Governance
+- Use namespaces to separate environments such as development, staging, and production.
+- Apply ResourceQuotas and LimitRanges early so that one team does not exhaust shared cluster resources.
+- Treat RBAC as a foundational security control and grant only the permissions necessary for each workload or user.
+- Use PVCs and StorageClasses instead of hardcoding storage details into application manifests.
+
+### Example: Namespace, Quota, and RBAC Flow
+```mermaid
+flowchart TD
+    U[Developer] --> NS[Namespace: dev]
+    NS --> RQ[ResourceQuota]
+    NS --> RBAC[Role / RoleBinding]
+    NS --> PVC[PersistentVolumeClaim]
+```
+
+Example:
+- A team can deploy only inside its namespace.
+- The quota limits CPU, memory, and pod count.
+- RBAC controls who may read, create, or delete resources.
+
+### Quick Summary
+- Namespaces separate workloads logically.
+- ResourceQuotas and LimitRanges control consumption.
+- RBAC authorizes actions at the API level.
+
+### Key Commands
+- `kubectl get namespaces`
+- `kubectl describe quota -n <namespace>`
+- `kubectl auth can-i create pods`
+
 ---

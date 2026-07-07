@@ -73,4 +73,40 @@ API Server Stress Testing: Using utilities like clusterloader2, you simulate mas
 
 Network Performance Validation: Using benchmarking engines like iperf3 or netperf deployed within test container pods, you measure the true network throughput and packet latency between different worker nodes, different namespaces, and across various network access policies. This allows you to measure the latency overhead introduced by your CNI implementation or service mesh proxy layers.
 
+4. Backup, Recovery, and Upgrade Readiness
+Operational maturity requires planning for failures, not only for steady-state performance.
+
+A. Backup Strategy
+For a Kubernetes cluster, backups should include etcd snapshots and any required application data. A restore plan must be tested regularly so that the platform team can recover quickly from control plane or data loss events.
+
+B. Upgrade Readiness Checks
+Before an upgrade, verify that the current cluster version is supported, that all add-ons are compatible, that node capacity is sufficient, and that the control plane has enough quorum to tolerate a failure during the rollout.
+
+C. Rollback Planning
+If an upgrade or change causes regressions, the team should know how to revert the change quickly, whether that means rolling back a deployment, restoring from a backup, or reapplying a previous configuration.
+
+### Example: Upgrade Workflow
+```mermaid
+flowchart TD
+    A[Upgrade control plane] --> B[Upgrade worker nodes one by one]
+    B --> C[Cordon and drain node]
+    C --> D[Upgrade kubelet / kube-proxy]
+    D --> E[Uncordon and verify]
+```
+
+Example:
+- A cluster upgrade is done gradually to avoid downtime.
+- Rollbacks are planned before the change is applied.
+
+### Quick Summary
+- Maintenance uses cordon and drain to safely move workloads.
+- Upgrades must follow a controlled sequence.
+- Backup and recovery plans are essential for production clusters.
+
+### Key Commands
+- `kubectl cordon <node-name>`
+- `kubectl drain <node-name> --ignore-daemonsets`
+- `kubectl uncordon <node-name>`
+
+---
 ---
