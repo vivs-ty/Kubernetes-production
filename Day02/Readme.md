@@ -134,4 +134,16 @@ Every single structural boundary within the Kubernetes architecture is secured b
 
 **Authentication & Authorization Enforcements:** When the `kubelet` connects to the `kube-apiserver`, the API server verifies that the kubelet's certificate was signed by the cluster CA, reads the Common Name (CN) to identify the specific node, and enforces Role-Based Access Control before fulfilling any data requests.
 
+### 4. Scheduling Fundamentals: Labels, Selectors, and Placement Rules
+
+The scheduler does not just choose a random node. It makes placement decisions based on several signals that are important in real clusters.
+
+- **Labels and Selectors:** Labels attach metadata to objects such as nodes and pods. Selectors let controllers and services target only the objects that match specific labels.
+- **Namespaces:** Kubernetes namespaces provide logical separation for resources like deployments, services, and config. They are helpful for organization and multi-team isolation, although they are not the same as full security boundaries.
+- **Taints and Tolerations:** A taint marks a node so that certain pods are discouraged or prevented from landing there. A toleration allows a pod to accept that taint.
+- **Affinity and Anti-Affinity:** Affinity rules encourage pods to run close to each other, while anti-affinity rules keep them apart for resiliency or topology awareness.
+- **Resource Requests and Limits:** The scheduler uses CPU and memory requests to decide if a node has enough capacity. Limits prevent a single workload from consuming all available resources.
+
+These scheduling concepts are what transform Kubernetes from a simple runtime into a policy-driven platform.
+
 ---
