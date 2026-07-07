@@ -120,4 +120,27 @@ This makes the control plane programmable and allows organizations to enforce in
 5. Why Extensibility Matters
 The real value of Kubernetes is that it becomes an extensible platform rather than a fixed runtime. With CRDs, Operators, and webhooks, teams can build internal platforms for databases, service meshes, CI/CD automation, disaster recovery, and custom business workflows on top of the same Kubernetes foundation.
 
+### Example: Operator Workflow
+```mermaid
+flowchart LR
+    A[User creates custom resource] --> B[API server stores resource]
+    B --> C[Operator watches the resource]
+    C --> D[Operator reconciles desired state]
+    D --> E[Pods, storage, and services are created]
+```
+
+Example:
+- A custom `PostgresCluster` resource can trigger an operator to create stateful workloads automatically.
+
+### Quick Summary
+- CRDs extend Kubernetes with custom APIs.
+- Operators automate complex application lifecycle tasks.
+- Webhooks let the control plane validate or mutate requests.
+
+### Key Commands
+- `kubectl get crd`
+- `kubectl describe crd <name>`
+- `kubectl get apiservices`
+
+---
 ---

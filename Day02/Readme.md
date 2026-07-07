@@ -146,4 +146,29 @@ The scheduler does not just choose a random node. It makes placement decisions b
 
 These scheduling concepts are what transform Kubernetes from a simple runtime into a policy-driven platform.
 
+### Architecture Flow: Control Plane to Worker Node
+```mermaid
+flowchart LR
+    Client[User / kubectl] --> API[kube-apiserver]
+    API --> ETCD[etcd]
+    API --> SCHED[kube-scheduler]
+    API --> CTRL[kube-controller-manager]
+    SCHED --> NODE[Worker node]
+    CTRL --> NODE
+```
+
+Example:
+- When you create a Pod, the API server stores the object in etcd.
+- The scheduler chooses a node based on capacity, labels, taints, and affinity rules.
+
+### Quick Summary
+- The control plane makes global decisions.
+- Worker nodes run the workloads.
+- kubelet, kube-proxy, and the container runtime are essential node components.
+
+### Key Commands
+- `kubectl get nodes`
+- `kubectl describe node <node-name>`
+- `kubectl get pods -A`
+
 ---

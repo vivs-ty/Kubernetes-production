@@ -104,4 +104,28 @@ Admission controllers validate or mutate requests before they reach the API serv
 - Treat RBAC as a foundational security control and grant only the permissions necessary for each workload or user.
 - Use PVCs and StorageClasses instead of hardcoding storage details into application manifests.
 
+### Example: Namespace, Quota, and RBAC Flow
+```mermaid
+flowchart TD
+    U[Developer] --> NS[Namespace: dev]
+    NS --> RQ[ResourceQuota]
+    NS --> RBAC[Role / RoleBinding]
+    NS --> PVC[PersistentVolumeClaim]
+```
+
+Example:
+- A team can deploy only inside its namespace.
+- The quota limits CPU, memory, and pod count.
+- RBAC controls who may read, create, or delete resources.
+
+### Quick Summary
+- Namespaces separate workloads logically.
+- ResourceQuotas and LimitRanges control consumption.
+- RBAC authorizes actions at the API level.
+
+### Key Commands
+- `kubectl get namespaces`
+- `kubectl describe quota -n <namespace>`
+- `kubectl auth can-i create pods`
+
 ---

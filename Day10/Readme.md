@@ -85,4 +85,28 @@ Before an upgrade, verify that the current cluster version is supported, that al
 C. Rollback Planning
 If an upgrade or change causes regressions, the team should know how to revert the change quickly, whether that means rolling back a deployment, restoring from a backup, or reapplying a previous configuration.
 
+### Example: Upgrade Workflow
+```mermaid
+flowchart TD
+    A[Upgrade control plane] --> B[Upgrade worker nodes one by one]
+    B --> C[Cordon and drain node]
+    C --> D[Upgrade kubelet / kube-proxy]
+    D --> E[Uncordon and verify]
+```
+
+Example:
+- A cluster upgrade is done gradually to avoid downtime.
+- Rollbacks are planned before the change is applied.
+
+### Quick Summary
+- Maintenance uses cordon and drain to safely move workloads.
+- Upgrades must follow a controlled sequence.
+- Backup and recovery plans are essential for production clusters.
+
+### Key Commands
+- `kubectl cordon <node-name>`
+- `kubectl drain <node-name> --ignore-daemonsets`
+- `kubectl uncordon <node-name>`
+
+---
 ---

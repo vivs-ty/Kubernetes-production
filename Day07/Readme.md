@@ -105,4 +105,27 @@ C. Common Monitoring Signals
 - Prefer affinity and anti-affinity rules when workloads have placement constraints or high-availability requirements.
 - Start with HPA for traffic-driven scale-out, and use VPA cautiously for workloads with stable or well-understood resource profiles.
 
+### Scheduling Decision Flow
+```mermaid
+flowchart TD
+    P[Pod request] --> F[Filter nodes]
+    F --> S[Score nodes]
+    S --> C[Pick best node]
+    C --> R[Run pod]
+```
+
+Example:
+- A GPU workload can use node affinity to land on GPU nodes.
+- A web app can use anti-affinity to stay on separate nodes for high availability.
+
+### Quick Summary
+- Scheduling is based on resource requests, labels, taints, and affinity rules.
+- Requests and limits affect both placement and QoS.
+- HPA and VPA help scale workloads dynamically.
+
+### Key Commands
+- `kubectl describe pod <pod-name>`
+- `kubectl top nodes`
+- `kubectl autoscale deployment <name> --cpu-percent=50 --min=2 --max=10`
+
 ---

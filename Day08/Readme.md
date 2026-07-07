@@ -78,4 +78,26 @@ C. Debugging Approach
 4. eBPF and Service Mesh as a Platform Shift
 eBPF and modern service mesh designs move networking and observability closer to the kernel and the platform layer. This reduces overhead and improves visibility, making large-scale distributed systems easier to secure and operate.
 
+### Example: Service Mesh Traffic Flow
+```mermaid
+flowchart LR
+    A[Client] --> B[Envoy sidecar]
+    B --> C[Service A]
+    B --> D[Service B]
+```
+
+Example:
+- Requests are intercepted and observed by the proxy.
+- mTLS and retries can be enforced centrally without changing application code.
+
+### Quick Summary
+- Service meshes add policy, observability, and security to service-to-service traffic.
+- Sidecars and ambient modes are two common approaches.
+- eBPF improves networking efficiency at the kernel level.
+
+### Key Commands
+- `kubectl get pods -n istio-system`
+- `kubectl logs -n istio-system <pod-name>`
+- `kubectl get svc`
+
 ---

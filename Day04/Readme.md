@@ -143,4 +143,27 @@ The Cluster Autoscaler adds or removes worker nodes when the cluster is under or
 - Design applications to be stateless whenever possible, because that simplifies scaling and rolling updates.
 - Keep secrets out of images and use dedicated secret-management solutions in production.
 
+### Workflow: Deployment Rollout
+```mermaid
+flowchart LR
+    A[Deployment updated] --> B[New ReplicaSet created]
+    B --> C[New Pods start]
+    C --> D[Health checks pass]
+    D --> E[Old Pods scaled down]
+```
+
+Example:
+- Updating the image tag triggers a rolling deployment.
+- `kubectl rollout status deployment/web` shows whether the rollout is complete.
+
+### Quick Summary
+- Deployments manage stateless applications.
+- ReplicaSets enforce the desired replica count.
+- Services provide stable networking for pods.
+
+### Key Commands
+- `kubectl get deployments`
+- `kubectl rollout status deployment/<name>`
+- `kubectl get svc`
+
 ---

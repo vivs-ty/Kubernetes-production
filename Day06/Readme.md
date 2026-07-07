@@ -71,4 +71,27 @@ C. Common Troubleshooting Checks
 5. Ingress vs. External Load Balancers
 An Ingress is not a replacement for every load balancer. It is best for HTTP and HTTPS routing at the application layer, while a cloud load balancer is still needed to expose the ingress controller itself to the public internet.
 
+### Request Path: Ingress to Service
+```mermaid
+flowchart LR
+    Client[Browser] --> LB[Cloud Load Balancer]
+    LB --> ING[Ingress Controller]
+    ING --> SVC[Service]
+    SVC --> POD[Pod]
+```
+
+Example:
+- `api.example.com` can route to an API service.
+- `www.example.com` can route to the frontend service.
+
+### Quick Summary
+- Services expose pods internally.
+- Ingress provides external HTTP and HTTPS routing.
+- TLS termination and certificates are usually handled at the ingress layer.
+
+### Key Commands
+- `kubectl get ingress`
+- `kubectl describe ingress <name>`
+- `kubectl get svc`
+
 ---

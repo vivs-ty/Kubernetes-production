@@ -86,4 +86,25 @@ Pods are ephemeral, so any data written to the container filesystem alone is los
 - **PersistentVolume (PV) and PersistentVolumeClaim (PVC):** A higher-level storage abstraction where storage is provisioned and consumed independently of the Pod lifecycle.
 - **CSI Drivers:** Kubernetes uses Container Storage Interface (CSI) drivers to integrate with cloud and network storage systems such as AWS EBS, Azure Disk, or NFS.
 
+### Practical Example: Sidecar Pattern
+```mermaid
+flowchart LR
+    A[Main app container] --> B[Shared volume]
+    C[Sidecar container] --> B
+```
+
+Example:
+- The app writes logs to a shared directory.
+- The sidecar tails those logs and forwards them to a logging system.
+
+### Quick Summary
+- Pods are the smallest deployable unit.
+- Containers in the same Pod share network and storage context.
+- Sidecars, init containers, and ephemeral containers solve different operational needs.
+
+### Key Commands
+- `kubectl get pods`
+- `kubectl describe pod <pod-name>`
+- `kubectl logs <pod-name>`
+
 ---

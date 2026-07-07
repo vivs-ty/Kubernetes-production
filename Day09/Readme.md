@@ -72,3 +72,27 @@ Common commands include `kubectl describe pod`, `kubectl logs`, `kubectl get eve
 
 4. Observability as a Platform Capability
 A mature Kubernetes platform treats observability as a first-class capability. Metrics, logs, traces, and profiling together allow teams to understand system health, detect regressions, and improve performance over time.
+
+### Example: Observability Pipeline
+```mermaid
+flowchart LR
+    A[Application metrics/logs/traces] --> B[Prometheus / Loki / Jaeger]
+    B --> C[Grafana dashboards]
+    C --> D[Alerts and incident response]
+```
+
+Example:
+- If CPU usage rises sharply, Prometheus alerts the team.
+- Loki helps inspect the relevant container logs.
+
+### Quick Summary
+- Metrics, logs, traces, and profiling are the four pillars of observability.
+- Prometheus and Grafana are the common monitoring stack.
+- Strong observability shortens incident response time.
+
+### Key Commands
+- `kubectl top pod <pod-name>`
+- `kubectl logs <pod-name>`
+- `kubectl get events --sort-by=.metadata.creationTimestamp`
+
+---

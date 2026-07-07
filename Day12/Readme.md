@@ -69,4 +69,28 @@ The journey from Day 1 to Day 12 shows that Kubernetes is not just a container r
 
 Once these concepts are understood together, Kubernetes becomes a platform for running modern applications reliably at scale.
 
+### Example: StatefulSet Lifecycle
+```mermaid
+flowchart LR
+    A[StatefulSet created] --> B[Pod db-0 starts]
+    B --> C[Pod db-1 starts]
+    C --> D[Pod db-2 starts]
+    D --> E[Stable storage and identity preserved]
+```
+
+Example:
+- Each database pod keeps its own storage and identity.
+- This is essential for PostgreSQL or Kafka-style workloads.
+
+### Quick Summary
+- StatefulSets are for stateful workloads with stable names and storage.
+- Cost optimization relies on right-sizing, visibility, and smart node strategy.
+- DoK means running data services on Kubernetes with careful operational design.
+
+### Key Commands
+- `kubectl get statefulsets`
+- `kubectl get pvc`
+- `kubectl get pods --show-labels`
+
+---
 ---

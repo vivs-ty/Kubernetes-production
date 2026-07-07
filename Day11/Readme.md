@@ -96,5 +96,27 @@ Role definitions should be narrowly scoped to the exact resources and verbs a wo
 5. Troubleshooting Mindset
 The most effective Kubernetes operators debug systematically: first identify the pod state, then inspect events and logs, then validate recent configuration or rollout changes before changing anything else.
 
+### Example: Troubleshooting Workflow
+```mermaid
+flowchart TD
+    A[Pod fails] --> B[Check pod status]
+    B --> C[Inspect events and logs]
+    C --> D[Identify root cause]
+    D --> E[Fix config or deployment]
+```
+
+Example:
+- If a pod is in `CrashLoopBackOff`, check the logs first.
+- If a pod stays `Pending`, inspect scheduling constraints and PVC binding.
+
+### Quick Summary
+- NetworkPolicies segment traffic inside the cluster.
+- Falco and Tetragon provide runtime security detection.
+- Troubleshooting should follow status, events, logs, and recent changes.
+
+### Key Commands
+- `kubectl describe pod <pod-name>`
+- `kubectl logs <pod-name>`
+- `kubectl get networkpolicy -A`
 
 ---

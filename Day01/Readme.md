@@ -187,4 +187,28 @@ Containers solve packaging problems, but they do not automatically solve distrib
 
 This is the reason Kubernetes exists: it turns a set of independent containers into a manageable, self-healing distributed system.
 
+### Practical Example: Build and Run a Container
+```mermaid
+flowchart LR
+    A[Developer writes Dockerfile] --> B[Build image]
+    B --> C[Image layers]
+    C --> D[Run container]
+    D --> E[Process inside isolated namespaces]
+```
+
+Example:
+- `docker build -t myapp .`
+- `docker run -p 8080:80 myapp`
+- The image is the immutable blueprint; each run creates a new container instance from that blueprint.
+
+### Quick Summary
+- Containers isolate processes using Linux namespaces and cgroups.
+- Images are immutable blueprints; containers are running instances.
+- Kubernetes was created to orchestrate containers across many machines.
+
+### Key Commands
+- `docker build -t myapp .`
+- `docker run -p 8080:80 myapp`
+- `docker ps`
+
 ---
