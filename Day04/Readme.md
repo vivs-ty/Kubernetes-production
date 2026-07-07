@@ -112,4 +112,35 @@ Mounted Volumes: ConfigMaps/Secrets are projected into the container filesystem 
 
 Advantage: Atomic updates. If you modify a ConfigMap or Secret in the API server, Kubernetes updates the mounted files inside the container on the fly without restarting the Pod. The application code can watch these files for changes and reload its configuration dynamically.
 
+5. Beyond Deployments: StatefulSets, DaemonSets, and Jobs
+Kubernetes includes several workload controllers beyond Deployments, each designed for a different kind of application.
+
+A. StatefulSets
+Use StatefulSets for stateful applications that require stable network identities, stable storage, and ordered deployment and scaling. Examples include databases and distributed systems.
+
+B. DaemonSets
+A DaemonSet ensures that a copy of a Pod runs on every eligible node. This is commonly used for node-level agents such as log collectors, monitoring daemons, or networking components.
+
+C. Jobs and CronJobs
+A Job runs a workload to completion, which is useful for batch processing or one-off tasks. A CronJob schedules Jobs repeatedly using a cron expression.
+
+6. Scaling and Autoscaling
+Scaling is one of the most important reasons to use Kubernetes.
+
+A. Manual Scaling
+You can increase or decrease the replica count of a Deployment directly to change capacity.
+
+B. Horizontal Pod Autoscaler (HPA)
+The HPA monitors CPU, memory, or custom metrics and automatically adjusts the number of replicas to match demand. This allows the cluster to absorb traffic spikes without overprovisioning all the time.
+
+C. Cluster Autoscaler
+The Cluster Autoscaler adds or removes worker nodes when the cluster is under or over capacity, helping match infrastructure cost to actual workload demand.
+
+7. Operational Best Practices
+- Prefer declarative manifests and version control for all infrastructure changes.
+- Use resource requests and limits to protect cluster stability.
+- Make health probes explicit so the platform can detect unhealthy applications.
+- Design applications to be stateless whenever possible, because that simplifies scaling and rolling updates.
+- Keep secrets out of images and use dedicated secret-management solutions in production.
+
 ---

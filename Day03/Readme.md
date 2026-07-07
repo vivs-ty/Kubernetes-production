@@ -54,4 +54,36 @@ Ephemeral Containers solve this. They are injected dynamically into an already a
 
 Mechanism: The ephemeral container is injected directly into the namespaces of the target Pod, allowing an engineer to run diagnostic utilities against the active application processes, memory spaces, and network interfaces without restarting or modifying the original container environment.
 
+4. Pod Lifecycle, Restart Policies, and Termination Behavior
+A Pod does not exist forever in a single state. It moves through a lifecycle that is important for troubleshooting and operational safety.
+
+A. Pod Phases and Container States
+- **Pending:** The Pod has been accepted by the cluster but is still waiting for scheduling or image pulls.
+- **Running:** At least one main container is running.
+- **Succeeded:** A job-like workload completed successfully.
+- **Failed:** A container terminated with an error.
+- **Unknown:** The Pod state cannot be determined, usually due to a communication issue with the node.
+
+Containers inside a Pod also have states such as `Waiting`, `Running`, and `Terminated`, and Kubernetes may report reasons such as `CrashLoopBackOff` or `ImagePullBackOff`.
+
+B. Restart Policies
+The `restartPolicy` field controls how the kubelet responds when a container exits:
+- **Always**: The default for regular Pods; restarts containers automatically.
+- **OnFailure**: Restarts only when the container exits with a non-zero code.
+- **Never**: Never restarts the container automatically.
+
+C. Graceful Shutdown and Termination Signals
+When a Pod is deleted, Kubernetes sends a `SIGTERM` to the main process and gives it a grace period before forcefully killing it with `SIGKILL`. This allows applications to finish in-flight work and shut down cleanly.
+
+D. PreStop Hooks
+A `preStop` hook can run a command or HTTP request before the container is terminated, which is useful for draining traffic or flushing buffers.
+
+5. Volumes and Storage Basics
+Pods are ephemeral, so any data written to the container filesystem alone is lost when the container or Pod is replaced. Volumes solve this problem by providing persistent or shared storage paths.
+
+- **emptyDir:** Temporary storage shared by containers in the same Pod. It exists only while the Pod is alive.
+- **hostPath:** Mounts a file or directory from the node's filesystem. It is useful for node-specific debugging but is not portable.
+- **PersistentVolume (PV) and PersistentVolumeClaim (PVC):** A higher-level storage abstraction where storage is provisioned and consumed independently of the Pod lifecycle.
+- **CSI Drivers:** Kubernetes uses Container Storage Interface (CSI) drivers to integrate with cloud and network storage systems such as AWS EBS, Azure Disk, or NFS.
+
 ---
