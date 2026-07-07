@@ -52,3 +52,23 @@ Workloads:
 - etcd Write Durations (etcd_disk_wal_fsync_duration_seconds): Tracks the latency of committing write-ahead logs (WAL) to disk. If disk I/O bottlenecks cause this metric to exceed 10ms, etcd node synchronization will degrade, potentially triggering leader reelection loops that can destabilize the entire cluster.
 
 - Container CPU Throttling (container_cpu_cfs_throttled_seconds): Indicates the duration for which a container's execution was actively throttled by the kernel scheduler. High throttling values mean your configured CPU limits are too restrictive, directly degrading application performance even if the underlying host node has idle CPU capacity.
+
+3. Alerting, Incident Response, and Troubleshooting Workflows
+Observability is incomplete without an operational response process.
+
+A. Alerting Strategy
+Alerts should be tied to actionable signals such as high pod restarts, node pressure, API server latency, and persistent disk errors. Good alerts help teams act before a user-visible incident occurs.
+
+B. Incident Triage Checklist
+When a cluster issue appears, the sequence is usually:
+- Confirm the affected workload, namespace, and node.
+- Check pod state, events, and recent restart history.
+- Review resource consumption, pending pods, and scheduling failures.
+- Inspect logs and traces for the failing service path.
+- Validate recent configuration changes or rollout events.
+
+C. Practical Debugging Commands
+Common commands include `kubectl describe pod`, `kubectl logs`, `kubectl get events`, `kubectl top`, and `kubectl debug` for live investigation.
+
+4. Observability as a Platform Capability
+A mature Kubernetes platform treats observability as a first-class capability. Metrics, logs, traces, and profiling together allow teams to understand system health, detect regressions, and improve performance over time.
