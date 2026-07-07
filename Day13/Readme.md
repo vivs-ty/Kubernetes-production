@@ -109,4 +109,15 @@ Instead of storing custom definitions within the cluster's main etcd database, y
 
 You submit an APIService registration manifest to the core Control Plane. When a client makes a request to the main kube-apiserver targeting your custom API path, the primary server routes the connection down to your custom API server extension transparently. This pattern is utilized by high-throughput components like the core Kubernetes Metrics Server, ensuring massive volumes of real-time metrics data do not overload the primary cluster state store.
 
+4. Admission Webhooks and Extending API Behavior
+Beyond defining new resources, Kubernetes can also intercept requests before they are persisted. Admission webhooks let you validate or mutate manifests dynamically.
+
+- **Mutating Webhooks** can inject defaults, add labels, or rewrite final deployment values.
+- **Validating Webhooks** can reject unsafe or non-compliant manifests before they reach the cluster.
+
+This makes the control plane programmable and allows organizations to enforce internal standards centrally.
+
+5. Why Extensibility Matters
+The real value of Kubernetes is that it becomes an extensible platform rather than a fixed runtime. With CRDs, Operators, and webhooks, teams can build internal platforms for databases, service meshes, CI/CD automation, disaster recovery, and custom business workflows on top of the same Kubernetes foundation.
+
 ---
