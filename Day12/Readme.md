@@ -45,4 +45,19 @@ Running massive clusters in public cloud environments can lead to significant in
 
 - **Spot Instance Node Pools:** You can reduce cloud infrastructure costs by utilizing Spot Instances (spare cloud capacity sold at deep discounts) for worker node pools. Because spot instances can be reclaimed by the cloud provider with minimal notice, you use these pools exclusively for fault-tolerant, stateless workloads, while protecting core stateful services on standard on-demand node pools.
 
+3. Stateful Workload Operations and Best Practices
+Stateful systems need extra care because they are not interchangeable like stateless pods.
+
+A. Backup and Restore for StatefulSets
+Databases and other stateful services should have explicit backup and restore processes, including snapshotting of persistent volumes and testing recovery procedures.
+
+B. High Availability Patterns
+For stateful applications, high availability often means replication across multiple instances, quorum-based consensus, or multi-zone placement to avoid single points of failure.
+
+C. Capacity Planning
+Stateful workloads require careful planning for storage growth, IOPS, and network throughput, since bottlenecks in these areas affect both application correctness and performance.
+
+4. The Bigger Picture
+DoK is not just about moving databases into Kubernetes; it is about operating a reliable, cost-aware platform that can support both stateless services and stateful systems with the same control plane discipline.
+
 ---
