@@ -66,6 +66,56 @@ The `k`ube-apiserver` is the structural hub of the entire cluster. It is the onl
 
    - **Admission Control:** A two-stage interception pipeline consisting of ***Mutating Admission Webhooks*** (which can modify incoming objects, such as injecting sidecar containers or applying default labels) and ***Validating Admission Webhooks*** (which perform schema enforcement and policy compliance checks, rejecting the request if validation fails).
 
+   ```
+
+         [ Incoming API Request ]
+               │
+               ▼
+      [ API Handler ]
+               │
+               ▼
+      [ Authentication & Authorization ]
+               │
+               ▼
+      [ Mutating Admission Controller ] ──────────┐
+               │                                  │ (Trigger)
+               │                                  ▼
+               │                        [ Registered Webhook ]
+               │                                  │
+               │                                  ▼
+               │                        [ Modified Object ]
+               │                                  │
+               ◀──────────────────────────────────┘
+               │
+               ▼
+      [ Object Schema Validation ]
+               │
+               ▼
+      [ Validating Admission Controller ] ────────┐
+               │                                  │ (Trigger)
+               │                                  ▼
+               │                        [ Registered Webhook ]
+               │                                  │
+               │                                  ▼
+               │                        [ Validated Object ]
+               │                                  │
+               ◀──────────────────────────────────┘
+               │
+               ▼
+      [ Persisted in etcd ]
+
+   ```
+ 
+ 
+    - API Handler: Receives the HTTP request and routes it to the correct internal function based on the API path.
+    - Authentication & Authorization: Confirms who is making the request (AuthN) and whether they have the permissions (RBAC/AuthZ) to perform the requested action.
+    - Mutating Admission Controller: Intercepts the request and can modify (mutate) the object before it is saved.
+     - Webhook Loop: If external webhooks are registered, it sends the request out. The webhook returns a modified object, which is sent back into the pipeline.
+    - Object Schema Validation: Ensures the incoming object (whether mutated or original) strictly matches the OpenAPI schema for that specific Kubernetes resource.
+    - Validating Admission Controller: Performs complex, custom validations that go beyond simple schema checks (e.g., ensuring a namespace exists or enforcing resource quotas).
+     - Webhook Loop: It can call external webhooks to approve or deny the request based on custom organizational policies.
+    - etcd: If the request passes all checks and validations, the final desired state is persisted into the etcd key-value store, making it the official state of the cluster.
+
 **B. `etcd` (The Distributed Key-Value Core)**
 `etcd` is a strongly consistent, distributed key-value store that functions as the single source of truth for the entire cluster state.
 
