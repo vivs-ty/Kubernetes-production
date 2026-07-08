@@ -53,6 +53,8 @@
 1. Control Plane Internal Architecture
 The Control Plane is responsible for making global architectural decisions, enforcing policies, and reacting to state drifts.
 
+----
+
 **A. `kube-apiserver` (The Stateless Gateway)**
 The `k`ube-apiserver` is the structural hub of the entire cluster. It is the only component that interacts directly with the `etcd` backing store. No other component—neither the scheduler, the controllers, nor external users—can read or write directly to the database.
 
@@ -66,6 +68,57 @@ The `k`ube-apiserver` is the structural hub of the entire cluster. It is the onl
 
    - **Admission Control:** A two-stage interception pipeline consisting of ***Mutating Admission Webhooks*** (which can modify incoming objects, such as injecting sidecar containers or applying default labels) and ***Validating Admission Webhooks*** (which perform schema enforcement and policy compliance checks, rejecting the request if validation fails).
 
+   ```
+
+         [ Incoming API Request ]
+               │
+               ▼
+      [ API Handler ]
+               │
+               ▼
+      [ Authentication & Authorization ]
+               │
+               ▼
+      [ Mutating Admission Controller ] ──────────┐
+               │                                  │ (Trigger)
+               │                                  ▼
+               │                        [ Registered Webhook ]
+               │                                  │
+               │                                  ▼
+               │                        [ Modified Object ]
+               │                                  │
+               ◀──────────────────────────────────┘
+               │
+               ▼
+      [ Object Schema Validation ]
+               │
+               ▼
+      [ Validating Admission Controller ] ────────┐
+               │                                  │ (Trigger)
+               │                                  ▼
+               │                        [ Registered Webhook ]
+               │                                  │
+               │                                  ▼
+               │                        [ Validated Object ]
+               │                                  │
+               ◀──────────────────────────────────┘
+               │
+               ▼
+      [ Persisted in etcd ]
+
+   ```
+ 
+   - API Handler: Receives the HTTP request and routes it to the correct internal function based on the API path.
+   - Authentication & Authorization: Confirms who is making the request (AuthN) and whether they have the permissions (RBAC/AuthZ) to perform the requested action.
+   - Mutating Admission Controller: Intercepts the request and can modify (mutate) the object before it is saved.
+     - Webhook Loop: If external webhooks are registered, it sends the request out. The webhook returns a modified object, which is sent back into the pipeline.
+   - Object Schema Validation: Ensures the incoming object (whether mutated or original) strictly matches the OpenAPI schema for that specific Kubernetes resource.
+   - Validating Admission Controller: Performs complex, custom validations that go beyond simple schema checks (e.g., ensuring a namespace exists or enforcing resource quotas).
+     - Webhook Loop: It can call external webhooks to approve or deny the request based on custom organizational policies.
+   - etcd: If the request passes all checks and validations, the final desired state is persisted into the etcd key-value store, making it the official state of the cluster.
+
+----
+
 **B. `etcd` (The Distributed Key-Value Core)**
 `etcd` is a strongly consistent, distributed key-value store that functions as the single source of truth for the entire cluster state.
 
@@ -75,6 +128,97 @@ $$\text{Quorum} = \lfloor \frac{N}{2} \rfloor + 1$$
 Consequently, production configurations require odd numbers of etcd members (typically 3 or 5) to survive node failures without incurring a split-brain scenario.
 
 **Optimistic Concurrency Control (OCC):** `etcd` does not employ traditional database row locks. Instead, every resource object in Kubernetes contains a `metadata.resourceVersion` field mapped to the `etcd` modification revision counter. If two actors attempt to update the exact same resource simultaneously, the first write succeeds, incrementing the revision counter. The second write is immediately rejected with a `409 Conflict` error, forcing the second client to read the updated object and retry the operation.
+
+*`etcd` operates as the cluster's single source of truth, managing state through a distributed, highly available consensus model.*
+
+**Data Model & Storage:**
+
+- *Distributed Key-Value Store:* Functions as a NoSQL database with no fixed schema, organizing data hierarchically.
+- *Write-Ahead Log (WAL):* Ensures data durability. Every transaction is written to a local disk log before being applied to the database, allowing nodes to recover their exact state after a crash.
+- *Communication:* Utilizes Protocol Buffers (protobuf) over gRPC for fast, serialized internal communication.
+
+**Raft Consensus Algorithm:**
+
+- *Node Roles:* Nodes operate as either a Leader, Follower, or Candidate.
+- *Heartbeats:* The active Leader continuously sends heartbeats to Followers to report its health and maintain authority.
+- *Elections:* If a Follower stops receiving heartbeats, it promotes itself to a Candidate and triggers an election to establish a new Leader.
+- *Quorum:* Writes are only committed once a majority of nodes acknowledge the change.
+
+**Security:**
+
+- *Data Encryption:* By default, data in etcd (including Kubernetes Secrets) is stored unencrypted in plain text. Encryption at rest must be explicitly configured at the API server level.
+
+ ```
+
+   [ Kube API Server ]
+            │
+            │ 1. Write Request (e.g., "Create Pod X")
+            ▼
+   [ etcd Leader ] ────────────────────────────────────────┐
+            │                                                │
+            │ 2. Save to local WAL (Write-Ahead Log)         │
+            │                                                │
+            │ 3. Send Proposal                               │ 3. Send Proposal
+            ▼                                                ▼
+   [ etcd Follower 1 ]                              [ etcd Follower 2 ]
+            │                                                │
+            │ 4. Save to local WAL                           │ 4. Save to local WAL
+            │                                                │
+            │ 5. Send ACK (Acknowledgment)                   │ 5. Send ACK
+            │                                                │
+            └───────────────────────┬────────────────────────┘
+                                    │
+            ┌───────────────────────┘
+            │
+            ▼
+   [ etcd Leader ]
+            │
+            │ 6. Quorum Reached (Majority has ACK'd)
+            │ 7. Commit data to actual Database (State Machine)
+            │ 8. Broadcast "Commit" command to Followers
+            │ 9. Return "Success"
+            ▼
+   [ Kube API Server ]
+
+ ```
+
+   - *Request:* All write requests from the Kubernetes API server are routed to the current etcd Leader.
+   - *Local WAL:* The Leader immediately writes the proposed change to its local disk (Write-Ahead Log) for crash recovery, but does not apply it to the database yet.
+   - *Replication:* The Leader sends the proposed change to all Follower nodes.
+   - *Follower WAL:* The Followers write the proposal to their own local logs.
+   - *Acknowledgment:* Followers tell the Leader, "I have it safely on disk."
+   - *Quorum:* The Leader waits until a strict majority (e.g., 2 out of 3 nodes) have acknowledged the write.
+   - *Commit:* Once quorum is reached, the Leader permanently applies the change to its database.
+   - *Finalize:* The Leader tells the API server the write was successful, and asynchronously tells the Followers they can now apply the change to their databases too.
+
+ ```
+
+      [ etcd Leader ] ◄─────── (Continuously broadcasts Heartbeats) ───────┐
+               │                                                             │
+               │ Heartbeats say: "I am alive, do not hold an election"       │
+               ▼                                                             ▼
+      [ etcd Follower 1 ]                                           [ etcd Follower 2 ]
+               │                                                             │
+               │ (Leader crashes or network drops)                           │
+               ▼                                                             ▼
+      [ Heartbeat Timeout! ]                                        [ Heartbeat Timeout! ]
+               │                                                             │
+               │ (Converts to Candidate)                                     │
+               ▼                                                             │
+         [ Candidate ] ────────── (Requests Votes) ──────────────────────────▶
+               │                                                             │
+               │ ◄────────────────────── (Grants Vote) ──────────────────────┤
+               ▼
+      [ New Leader Elected ] ── (Starts sending Heartbeats) ───────────────▶
+
+ ```
+   - *Steady State:* The cluster is peaceful as long as Followers receive frequent heartbeats (usually every 100ms) from the Leader.
+   - *Timeout:* Every Follower has a randomized countdown timer. If the timer hits zero before a heartbeat arrives, it assumes the Leader is dead.
+   - *Election:* The Follower promotes itself to a Candidate, votes for itself, and asks the others for their votes.
+   - *Resolution:* Because timers are randomized, usually one node times out first, gets the majority of votes, and becomes the new Leader, instantly suppressing other candidates with a new heartbeat.
+
+
+----
 
 **C. `kube-scheduler` (The Placement Engine)**
 The scheduler is a highly specialized loop that searches for newly instantiated Pods that possess a blank `spec.nodeName` attribute and determines the optimal host node for them.

@@ -158,11 +158,11 @@ These tools come from different ecosystems that strongly favor `snake_case` (whe
 
 ### Kubernetes
 
-**`Kubernetes`** is a set of controllers, which is a great way to think about its "brain" (the Control Plane). Kubernetes is inherently declarative. You tell it what you want (the desired state), and its controllers run in continuous loops, constantly comparing the actual state of the cluster to your desired state, making adjustments to fix any discrepancies.
+**`Kubernetes`** *is a set of controllers*, kubernetes operates as a declarative system managed by a set of controllers within the Control Plane. You define the desired state, and these controllers run in continuous reconciliation loops, constantly comparing the actual state of the cluster to the desired state and making autonomous adjustments to resolve any discrepancies.
 
-   - `Container`: Spot on. It packages the code, runtime, and configurations into a single, portable unit. Because it contains its own environment, it eliminates the "it works on my machine" problem and prevents vendor lock-in. The `Dockerfile` acts as the blueprint.
-   - `Pod`: Exactly. It is the smallest deployable computing unit in Kubernetes. While a pod can hold multiple containers that need to share resources (like a main application container and a logging "sidecar"), the one-container-per-pod model is the most common.
-   - `Node`: Yes, this is the worker machine (which can be a physical server or a virtual machine). It provides the actual compute power, memory, and networking resources for the pods to run.
+   - `Container`:  It packages the code, runtime, and configurations into a single, portable unit. Because it contains its own environment, it eliminates the "it works on my machine" problem and prevents vendor lock-in. The `Dockerfile` acts as the blueprint.
+   - `Pod`:  It is the smallest deployable computing unit in Kubernetes. While a pod can hold multiple containers that need to share resources (like a main application container and a logging "sidecar"), the one-container-per-pod model is the most common.
+   - `Node`: This is the worker machine (which can be a physical server or a virtual machine). It provides the actual compute power, memory, and networking resources for the pods to run.
    - `Cluster`: The overarching system. It pools the resources of multiple nodes together so they act as a single, massive, fault-tolerant machine.
 
 ### 4. Container Images, Dockerfiles, and the Lifecycle of a Running Container
