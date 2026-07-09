@@ -5,7 +5,9 @@
 
 ---
 
-*A Kubernetes cluster is a distributed system consisting of master nodes (the Control Plane) that manage system state and worker nodes that execute application processes.*
+*This repository contains 13 daily lessons covering Kubernetes concepts from basics to pro level, with architecture flow diagrams and detailed explanations for beginner-friendly learning.*
+
+*A Kubernetes cluster is a distributed system consisting of control plane nodes (the Control Plane) that manage system state and worker nodes that execute application processes.*
 
 ```
 +---------------------------------------------------------------------------------+
@@ -56,17 +58,17 @@ The Control Plane is responsible for making global architectural decisions, enfo
 ----
 
 **A. `kube-apiserver` (The Stateless Gateway)**
-The `kube-apiserver` is the structural hub of the entire cluster. It is the only component that interacts directly with the `etcd` backing store. No other component—neither the scheduler, the controllers, nor external users—can read or write directly to the database.
+The `kube-apiserver` is the structural hub of the entire cluster. It is the only component that writes directly to the `etcd` backing store. All other control plane components—such as the scheduler, controllers, and cloud controller manager—talk to `etcd` indirectly through the API server.
 
 **Stateless Scaling:** Because the API server holds no local state, it can be horizontally scaled behind a standard Layer 4 or Layer 7 load balancer.
 
-**The Request Pipeline:** When a request hits the API server, it traverses three sequential phases:
+**The Request Pipeline:** When a request hits the API server, it traverses several sequential phases:
 
    - **Authentication:** Validates the identity of the caller using client certificates, bearer tokens, OpenID Connect (OIDC), or webhook verification.
 
    - **Authorization:** Evaluates whether the authenticated identity has sufficient clearance to execute the requested action. Evaluated via Role-Based Access Control (RBAC), Attribute-Based Access Control (ABAC), or Webhook modules.
 
-   - **Admission Control:** A two-stage interception pipeline consisting of ***Mutating Admission Webhooks*** (which can modify incoming objects, such as injecting sidecar containers or applying default labels) and ***Validating Admission Webhooks*** (which perform schema enforcement and policy compliance checks, rejecting the request if validation fails).
+  - **Admission Control:** A multi-stage interception pipeline consisting of ***Mutating Admission Webhooks*** (which can modify incoming objects, such as injecting sidecar containers or applying default labels) and ***Validating Admission Webhooks*** (which perform schema enforcement and policy compliance checks, rejecting the request if validation fails).
 
    ```
 
@@ -220,10 +222,11 @@ Consequently, production configurations require odd numbers of etcd members (typ
 
 ----
 
-**C. `kube-scheduler` (The Placement Engine)**
-The scheduler is a highly specialized loop that searches for newly instantiated Pods that possess a blank `spec.nodeName` attribute and determines the optimal host node for them.
 
-The scheduling cycle operates via a two-phase architecture:
+**C. `kube-scheduler` (The Placement Engine)**
+The scheduler is a highly specialized loop that searches for newly instantiated Pods with an empty `spec.nodeName` attribute and determines the optimal host node for them.
+
+The scheduling cycle operates via a plugin-based architecture with phases such as `PreFilter`, `Filter`, `Score`, and `Reserve`.
 
 **Filtering (Predicates):** Evaluates nodes against strict architectural constraints. Nodes are eliminated if they have insufficient allocatable memory/CPU, if their ports are already bound, or if they violate defined node selectors or taints.
 
@@ -356,9 +359,9 @@ Decouples cloud-provider-specific logic from the core Kubernetes codebase. It in
 Worker nodes are the computational units responsible for executing the isolated workload processes assigned by the Control Plane.
 
 **A. `kubelet` (The Node Supervisor)**
-The primary agent running on every worker node. It does not look at manifests on your local laptop; it watches the API Server for Pod specifications assigned specifically to its local machine's hostname.
+The primary agent running on every worker node. It does not look at manifests on your local laptop; it watches the API server for Pod specifications assigned specifically to its local machine's hostname.
 
-**The Synchronization Loop:** The `kubelet` continuously queries the API Server for assigned Pod definitions. Upon detecting a new assignment, it calls the local high-level container runtime using the standard gRPC ***Container Runtime Interface (CRI)*** to manifest the physical container processes.
+**The Synchronization Loop:** The `kubelet` continuously watches the API server for assigned Pod definitions. Upon detecting a new assignment, it calls the local high-level container runtime using the standard gRPC ***Container Runtime Interface (CRI)*** to manifest the physical container processes.
 
 **Health Surveillance:** The `kubelet` is directly responsible for monitoring container execution states and executing defined liveness, readiness, and startup probes locally.
 
@@ -391,14 +394,14 @@ The primary agent running on every worker node. It does not look at manifests on
 
   - *`Health Monitoring`:* It executes the Liveness, Readiness, and Startup probes defined in the PodSpec. If a Liveness probe fails, the kubelet is the component that actually restarts the container on that specific machine.
 
-  - *`Garbage Collection`:* It continuously monitors disk space on the node and cleans up dead containers and unused Docker images to prevent the node from running out of storage.
+  - *`Garbage Collection`:* It continuously monitors disk space on the node and cleans up dead containers and unused container images to prevent the node from running out of storage.
 
 ----
 
 **B. `kube-proxy` (The Network Virtualization Layer)**
 Runs on every node and maintains the network architecture required to route traffic to internal Pod endpoints. It acts as a local routing table manager.
 
-**iptables Mode:** `kube-proxy` watches the API server for changes to Service and Endpoint objects. It translates these abstractions into standard Linux kernel `iptables` packet-filtering rules. When traffic hits a Service IP, the kernel performs DNAT (Destination Network Address Translation), randomly selecting a backend Pod endpoint. This mode can suffer from performance degradation in massive clusters, as `iptables` evaluates rules linearly ($O(N)$ lookup complexity).
+**iptables Mode:** `kube-proxy` watches the API server for changes to Service, Endpoint, and EndpointSlice objects. It translates these abstractions into standard Linux kernel `iptables` packet-filtering rules. When traffic hits a Service IP, the kernel performs DNAT (Destination Network Address Translation), randomly selecting a backend Pod endpoint. This mode can suffer from performance degradation in massive clusters, as `iptables` evaluates rules linearly ($O(N)$ lookup complexity).
 
 **IPVS (IP Virtual Server) Mode:** A highly optimized alternative built into the Netfilter framework. IPVS utilizes hash tables ($O(1)$ lookup complexity), allowing it to handle massive connection loads and tens of thousands of services without incurring significant kernel latency overhead.
 
@@ -457,9 +460,9 @@ Every single structural boundary within the Kubernetes architecture is secured b
 
 ```
 
-**The Cluster Certificate Authority (CA):** During cluster provisioning, a dedicated root CA certificate and private key pair are established. All discrete components (API Server, Kubelet, Scheduler, Controller Manager) are issued specific client/server certificates cryptographically signed by this central root CA.
+**The Cluster Certificate Authority (CA):** During cluster provisioning, a dedicated root CA certificate and private key pair are established. All discrete components (API Server, kubelet, scheduler, controller manager) are issued specific client/server certificates cryptographically signed by this central root CA.
 
-**Authentication & Authorization Enforcements:** When the `kubelet` connects to the `kube-apiserver`, the API server verifies that the kubelet's certificate was signed by the cluster CA, reads the Common Name (CN) to identify the specific node, and enforces Role-Based Access Control before fulfilling any data requests.
+**Authentication & Authorization Enforcements:** When the `kubelet` connects to the `kube-apiserver`, the API server verifies that the kubelet's certificate was signed by the cluster CA, reads the Common Name (CN) or Subject Alternative Name (SAN) to identify the specific node, and enforces Role-Based Access Control before fulfilling any data requests.
 
 ### 4. Scheduling Fundamentals: Labels, Selectors, and Placement Rules
 
