@@ -5,6 +5,8 @@
 
 ---
 
+*This repository contains 13 daily lessons that take you from Kubernetes basics to pro-level concepts, with architecture flow diagrams and detailed explanations for beginners.*
+
 *To understand why Kubernetes exists, you must first understand the problems it was built to solve. We begin at the lowest level: the Linux Kernel.*
 
 1. **The Core Kernel Primitives: Building a Container from Scratch**
@@ -68,7 +70,7 @@ Historically, Docker was a monolithic toolchain responsible for image building, 
           ▼ (Kernel System Calls)
  [ Isolated Process ]
  ```
-- **High-Level Container Runtimes (`containerd`, `CRI-O`):** These daemons manage the lifecycle of images, handle network attachments, supervise storage mounts, and expose a gRPC API that implements the Kubernetes **Container Runtime Interface (CRI)**.
+- **High-Level Container Runtimes (`containerd`, `CRI-O`):** These daemons manage the lifecycle of images, handle network attachments, supervise storage mounts, create the container sandbox environment, and expose a gRPC API that implements the Kubernetes **Container Runtime Interface (CRI)**.
 
 - **Low-Level Container Runtimes (`runc`):** A transient, short-lived CLI tool. It accepts an OCI-compliant runtime configuration from `containerd` or `CRI-O`, executes the necessary Linux kernel system calls (`clone`, `unshare`, `setns`, `pivot_root`), hands off execution to the container entrypoint, and immediately exits.
 
@@ -156,14 +158,31 @@ These tools come from different ecosystems that strongly favor `snake_case` (whe
 
 **The Takeaway:** When writing YAML, you always have to ask yourself, *"Who is reading this?"* If you pass `image_pull_policy: Always` to Kubernetes, it will reject it. If you pass `vpcSecurityGroupIds` to Terraform, it will fail.
 
+* **Example Kubernetes YAML:**
+```yaml
+apiVersion: v1
+kind: Pod
+metadata:
+  name: hello-world
+spec:
+  containers:
+    - name: app
+      image: nginx:stable
+      ports:
+        - containerPort: 80
+```
+This example shows the `camelCase` field names Kubernetes expects.
+
 ### Kubernetes
 
-**`Kubernetes`** *is a set of controllers*, kubernetes operates as a declarative system managed by a set of controllers within the Control Plane. You define the desired state, and these controllers run in continuous reconciliation loops, constantly comparing the actual state of the cluster to the desired state and making autonomous adjustments to resolve any discrepancies.
+**`Kubernetes`** is a declarative system managed by a set of controllers inside the Control Plane. You define the desired state, and the control plane continuously reconciles the actual state to match the desired state.
 
-   - `Container`:  It packages the code, runtime, and configurations into a single, portable unit. Because it contains its own environment, it eliminates the "it works on my machine" problem and prevents vendor lock-in. The `Dockerfile` acts as the blueprint.
-   - `Pod`:  It is the smallest deployable computing unit in Kubernetes. While a pod can hold multiple containers that need to share resources (like a main application container and a logging "sidecar"), the one-container-per-pod model is the most common.
+   - `Container`: It packages the code, runtime, and configurations into a single, portable unit. Because it contains its own environment, it eliminates the "it works on my machine" problem and prevents vendor lock-in. The `Dockerfile` acts as the blueprint.
+   - `Pod`: It is the smallest deployable computing unit in Kubernetes. While a pod can hold multiple containers that need to share resources (like a main application container and a logging "sidecar"), the one-container-per-pod model is the most common.
    - `Node`: This is the worker machine (which can be a physical server or a virtual machine). It provides the actual compute power, memory, and networking resources for the pods to run.
    - `Cluster`: The overarching system. It pools the resources of multiple nodes together so they act as a single, massive, fault-tolerant machine.
+
+The Kubernetes control plane includes components like `kube-scheduler`, which decides where pods should run, and `kube-controller-manager`, which hosts controllers that enforce desired state for deployments, replica sets, nodes, and more.
 
 ### 4. Container Images, Dockerfiles, and the Lifecycle of a Running Container
 
