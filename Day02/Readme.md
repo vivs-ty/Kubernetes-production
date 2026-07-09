@@ -309,7 +309,6 @@ A monolithic binary containing a collection of independent, distinct control loo
 The controller manager is a single binary daemon that embeds multiple core control loops. Rather than running dozens of separate processes, Kubernetes bundles these fundamental controllers together for easier deployment and management.
 Each controller inside the manager operates on the standard Kubernetes loop: it watches the API server for the desired state, compares it to the actual state, and executes logic to reconcile the two.
 
-**Core Controllers Breakdown:**
    - *`Node Controller`:* Responsible for noticing and responding when nodes go down. It monitors node health and automatically triggers the eviction of pods from an unreachable node after a timeout (typically 5 minutes).
 
    - *`Namespace Controller`:* Watches for Namespace deletion API requests. When a namespace is deleted, this controller acts as a garbage collector, ensuring all underlying resources (pods, services, volumes) within that namespace are wiped out before the namespace itself is removed.
@@ -326,6 +325,7 @@ Each controller inside the manager operates on the standard Kubernetes loop: it 
 Decouples cloud-provider-specific logic from the core Kubernetes codebase. It interacts with cloud infrastructure APIs to manage external load balancers, provision persistent storage routing, and handle node lifecycles natively within environments like AWS, GCP, or Azure.
 
   ```
+  
     [ kube-apiserver ]
                         ▲
                         │ (Watch & Update)
@@ -340,9 +340,9 @@ Decouples cloud-provider-specific logic from the core Kubernetes codebase. It in
       ▼                 ▼                 ▼
     Node              Route            Service
   Controller       Controller        Controller
+
   ```
 
-  **Core Cloud Controllers**
    - Node Controller: Responsible for updating Node objects with cloud-specific metadata (like zone, region, machine type, and external/internal IP addresses). Crucially, it polls the cloud provider's API to check if a node has been deleted or terminated in the cloud; if it has, the controller deletes the corresponding Node object from the Kubernetes cluster.
 
    - Route Controller: Responsible for configuring network routing rules in the underlying cloud infrastructure so that containers on different nodes can communicate with each other (mostly relevant for cloud providers using overlay networks or native VPC routing).
@@ -401,6 +401,43 @@ Runs on every node and maintains the network architecture required to route traf
 **iptables Mode:** `kube-proxy` watches the API server for changes to Service and Endpoint objects. It translates these abstractions into standard Linux kernel `iptables` packet-filtering rules. When traffic hits a Service IP, the kernel performs DNAT (Destination Network Address Translation), randomly selecting a backend Pod endpoint. This mode can suffer from performance degradation in massive clusters, as `iptables` evaluates rules linearly ($O(N)$ lookup complexity).
 
 **IPVS (IP Virtual Server) Mode:** A highly optimized alternative built into the Netfilter framework. IPVS utilizes hash tables ($O(1)$ lookup complexity), allowing it to handle massive connection loads and tens of thousands of services without incurring significant kernel latency overhead.
+
+  ```
+    
+    [ kube-apiserver (Control Plane) ]
+                      ▲
+                      │ (Watches for new Services & Endpoints)
+                      ▼
+        [ kube-proxy (Worker Node Daemon) ]
+                      │
+                      ▼ (Translates config to OS-level rules)
+          ┌────────────┴────────────┐
+          ▼                         ▼
+    [ iptables ]       OR       [ IPVS ]
+  (Packet Filter)            (Load Balancer)
+          │                         │
+          └────────────┬────────────┘
+                      │ (Intercepts & Routes Traffic)
+                      ▼
+            [ Backend Pod (Target) ]
+
+  ```
+  
+  kube-proxy does not actually route the traffic itself (doing so would be a massive performance bottleneck). Instead, it acts as a configuration manager for the Linux kernel's networking stack.
+
+  - *`Watching the API`:* It continuously monitors the kube-apiserver for the creation, modification, or deletion of Service and EndpointSlice objects.
+
+  - *`Managing OS Rules`:* When a Service is created, kube-proxy writes rules into the host operating system so that any traffic hitting the node looking for that Service's IP is automatically redirected to a healthy Pod.
+
+  ***It achieves this through a few different modes:***
+
+   - *`iptables Mode` (The Default):* kube-proxy writes a massive list of sequential firewall rules into Linux iptables. When a packet arrives, the kernel evaluates it against these rules and randomly selects a backend Pod to receive the traffic. It is highly stable but can become a performance bottleneck in massive clusters with tens of thousands of services because the kernel has to read through the rules sequentially.
+
+   - *`IPVS Mode` (High Performance):* This mode uses the Linux kernel's IP Virtual Server module. Instead of a long list of sequential rules, IPVS uses highly optimized hash tables. It also supports intelligent load-balancing algorithms (like Round Robin or Least Connections) rather than just random selection.
+
+   - *`eBPF` (The Modern Replacement):* In many cutting-edge clusters (especially those using the Cilium network plugin), kube-proxy is bypassed or removed entirely. eBPF is used to inject routing logic directly into the kernel, providing vastly superior performance and visibility without relying on iptables or IPVS.
+
+----
 
 3. Cluster Security: Secure Communication via Mutual TLS (mTLS)
 Every single structural boundary within the Kubernetes architecture is secured by default using ***Mutual TLS (mTLS)***. Components do not simply encrypt their traffic; they must explicitly present cryptographic identities to one another.
