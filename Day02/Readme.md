@@ -56,7 +56,7 @@ The Control Plane is responsible for making global architectural decisions, enfo
 ----
 
 **A. `kube-apiserver` (The Stateless Gateway)**
-The `k`ube-apiserver` is the structural hub of the entire cluster. It is the only component that interacts directly with the `etcd` backing store. No other component—neither the scheduler, the controllers, nor external users—can read or write directly to the database.
+The `kube-apiserver` is the structural hub of the entire cluster. It is the only component that interacts directly with the `etcd` backing store. No other component—neither the scheduler, the controllers, nor external users—can read or write directly to the database.
 
 **Stateless Scaling:** Because the API server holds no local state, it can be horizontally scaled behind a standard Layer 4 or Layer 7 load balancer.
 
@@ -231,27 +231,27 @@ The scheduling cycle operates via a two-phase architecture:
 
   ```
 
-  [ Pod Queue ] ──(Sort)──▶ [ Next Pod to Schedule ]
+    [ Pod Queue ] ──(Sort)──▶ [ Next Pod to Schedule ]
 
-   ================ SCHEDULING CYCLE (Synchronous) ================
-   │
-   ├─▶ [ PreFilter ]      (Setup & check pod requirements)
-   ├─▶ [ Filter ]         (Eliminate nodes that cannot run the pod)
-   │      └─▶ [ PostFilter ] (Triggered ONLY if no nodes fit: handles Preemption)
-   │
-   ├─▶ [ PreScore ]       (Prepare shared state for scoring plugins)
-   ├─▶ [ Score ]          (Rank the remaining valid nodes based on metrics)
-   ├─▶ [ Normalize ]      (Scale scores to a standard 0-100 range)
-   │
-   ├─▶ [ Reserve ]        (Temporarily claim resources on the winning node)
-   └─▶ [ Permit ]         (Approve, deny, or wait for external conditions)
-          │
-          ▼
-   ================== BINDING CYCLE (Asynchronous) ==================
-          │
-          ├─▶ [ PreBind ]  (Execute prerequisites, e.g., attach network volumes)
-          ├─▶ [ Bind ]     (Assign the pod to the node via the API server/etcd)
-          └─▶ [ PostBind ] (Informational cleanup and logging)
+    ================ SCHEDULING CYCLE (Synchronous) ================
+    │
+    ├─▶ [ PreFilter ]      (Setup & check pod requirements)
+    ├─▶ [ Filter ]         (Eliminate nodes that cannot run the pod)
+    │      └─▶ [ PostFilter ] (Triggered ONLY if no nodes fit: handles Preemption)
+    │
+    ├─▶ [ PreScore ]       (Prepare shared state for scoring plugins)
+    ├─▶ [ Score ]          (Rank the remaining valid nodes based on metrics)
+    ├─▶ [ Normalize ]      (Scale scores to a standard 0-100 range)
+    │
+    ├─▶ [ Reserve ]        (Temporarily claim resources on the winning node)
+    └─▶ [ Permit ]         (Approve, deny, or wait for external conditions)
+            │
+            ▼
+    ================== BINDING CYCLE (Asynchronous) ==================
+            │
+            ├─▶ [ PreBind ]  (Execute prerequisites, e.g., attach network volumes)
+            ├─▶ [ Bind ]     (Assign the pod to the node via the API server/etcd)
+            └─▶ [ PostBind ] (Informational cleanup and logging)
 
   ```
 
@@ -288,20 +288,20 @@ A monolithic binary containing a collection of independent, distinct control loo
 
   ```
  
-  [ etcd ]
-                             ▲
-                             │ (State Persistence)
-                             ▼
-[ kube-scheduler ] ◄────► [ kube-apiserver ] 
-                             ▲
-                             │ (Watch & Update)
-                             ▼
-                 [ kube-controller-manager ]
-                             │
-     ┌───────────────┬───────┴───────┬───────────────┐
-     ▼               ▼               ▼               ▼
-   Node          Namespace       DaemonSet        CronJob
- Controller     Controller      Controller      Controller
+    [ etcd ]
+                              ▲
+                              │ (State Persistence)
+                              ▼
+  [ kube-scheduler ] ◄────► [ kube-apiserver ] 
+                              ▲
+                              │ (Watch & Update)
+                              ▼
+                  [ kube-controller-manager ]
+                              │
+      ┌───────────────┬───────┴───────┬───────────────┐
+      ▼               ▼               ▼               ▼
+    Node          Namespace       DaemonSet        CronJob
+  Controller     Controller      Controller      Controller
 
   ```
 
@@ -310,21 +310,47 @@ The controller manager is a single binary daemon that embeds multiple core contr
 Each controller inside the manager operates on the standard Kubernetes loop: it watches the API server for the desired state, compares it to the actual state, and executes logic to reconcile the two.
 
 **Core Controllers Breakdown:**
+   - *`Node Controller`:* Responsible for noticing and responding when nodes go down. It monitors node health and automatically triggers the eviction of pods from an unreachable node after a timeout (typically 5 minutes).
 
-  - *`Node Controller`:* Responsible for noticing and responding when nodes go down. It monitors node health and automatically triggers the eviction of pods from an unreachable node after a timeout (typically 5 minutes).
+   - *`Namespace Controller`:* Watches for Namespace deletion API requests. When a namespace is deleted, this controller acts as a garbage collector, ensuring all underlying resources (pods, services, volumes) within that namespace are wiped out before the namespace itself is removed.
 
-  - *`Namespace Controller`:* Watches for Namespace deletion API requests. When a namespace is deleted, this controller acts as a garbage collector, ensuring all underlying resources (pods, services, volumes) within that namespace are wiped out before the namespace itself is removed.
+   - *`DaemonSet Controller`:* Watches for DaemonSet objects. It bypasses parts of the standard scheduler to ensure that exactly one copy of a specific pod is running on all (or a filtered subset of) valid nodes in the cluster.
 
-  - *`DaemonSet Controller`:* Watches for DaemonSet objects. It bypasses parts of the standard scheduler to ensure that exactly one copy of a specific pod is running on all (or a filtered subset of) valid nodes in the cluster.
+   - *`CronJob Controller`:* Watches for CronJob objects. It maintains an internal schedule and, when the time arrives, communicates with the API server to create a standard Job object to execute the task.
 
-  - *`CronJob Controller`:* Watches for CronJob objects. It maintains an internal schedule and, when the time arrives, communicates with the API server to create a standard Job object to execute the task.
-
-  - *`custom controller`:*  The kube-controller-manager binary strictly runs the built-in core controllers. If you write a Custom Controller (often called an Operator, like a database operator or a backup operator), it runs as its own separate deployment inside the cluster. It talks to the kube-apiserver in the exact same way the core controllers do, but it is completely independent of the kube-controller-manager process.
+   - *`custom controller`:*  The kube-controller-manager binary strictly runs the built-in core controllers. If you write a Custom Controller (often called an Operator, like a database operator or a backup operator), it runs as its own separate deployment inside the cluster. It talks to the kube-apiserver in the exact same way the core controllers do, but it is completely independent of the kube-controller-manager process.
 
 ----
 
 **E. `cloud-controller-manager`**
 Decouples cloud-provider-specific logic from the core Kubernetes codebase. It interacts with cloud infrastructure APIs to manage external load balancers, provision persistent storage routing, and handle node lifecycles natively within environments like AWS, GCP, or Azure.
+
+  ```
+    [ kube-apiserver ]
+                        ▲
+                        │ (Watch & Update)
+                        ▼
+            [ cloud-controller-manager ]
+                        │
+                        ▼
+              [ Cloud Provider API ]
+          (AWS, GCP, Azure, OpenStack, etc.)
+                        │
+      ┌─────────────────┼─────────────────┐
+      ▼                 ▼                 ▼
+    Node              Route            Service
+  Controller       Controller        Controller
+  ```
+
+  **Core Cloud Controllers**
+   - Node Controller: Responsible for updating Node objects with cloud-specific metadata (like zone, region, machine type, and external/internal IP addresses). Crucially, it polls the cloud provider's API to check if a node has been deleted or terminated in the cloud; if it has, the controller deletes the corresponding Node object from the Kubernetes cluster.
+
+   - Route Controller: Responsible for configuring network routing rules in the underlying cloud infrastructure so that containers on different nodes can communicate with each other (mostly relevant for cloud providers using overlay networks or native VPC routing).
+
+   - Service Controller: Watches for Kubernetes Services of type LoadBalancer. When created, updated, or deleted, this controller automatically provisions, configures, or tears down the physical cloud load balancer (e.g., AWS ELB/ALB, GCP Cloud Load Balancing) and maps its external IP back to the Kubernetes Service.
+
+----
+----
 
 2. Worker Node Internal Architecture
 Worker nodes are the computational units responsible for executing the isolated workload processes assigned by the Control Plane.
@@ -335,6 +361,39 @@ The primary agent running on every worker node. It does not look at manifests on
 **The Synchronization Loop:** The `kubelet` continuously queries the API Server for assigned Pod definitions. Upon detecting a new assignment, it calls the local high-level container runtime using the standard gRPC ***Container Runtime Interface (CRI)*** to manifest the physical container processes.
 
 **Health Surveillance:** The `kubelet` is directly responsible for monitoring container execution states and executing defined liveness, readiness, and startup probes locally.
+
+  ```
+    
+    [ kube-apiserver (Control Plane) ]
+                      ▲
+                      │ (Receives PodSpecs, sends Status Reports)
+                      ▼
+                [ kubelet (Worker Node) ]
+                      │
+                      ├─(CRI)─▶ [ Container Runtime ] (e.g., containerd, CRI-O)
+                      │                 │ (Pulls images, starts/stops containers)
+                      │
+                      ├─(CNI)─▶ [ Network Plugin ] (e.g., Calico, Flannel)
+                      │                 │ (Assigns Pod IPs, configures routing)
+                      │
+                      └─(CSI)─▶ [ Storage Plugin ] (e.g., AWS EBS, local disk)
+                                        │ (Mounts persistent volumes to Pods)
+
+  ```
+
+  The kubelet operates in a continuous declarative loop, just like the controllers in the Control Plane, but focused entirely on its local node:
+
+  - *`Node Registration`:* When the kubelet boots up, it reaches out to the kube-apiserver and registers its host machine as a Node in the cluster, reporting its available CPU, memory, and disk space.
+
+  - *`Pod Execution (The CRI)`:* The kubelet receives a PodSpec (usually from the API server, but it can also read them from a local file directory for "Static Pods"). It does not run containers itself. Instead, it translates the PodSpec into commands sent via the Container Runtime Interface (CRI) to software like containerd to pull the image and spin up the container.
+
+  - *`Networking (The CNI)`:* Before the container fully starts, the kubelet calls out to the Container Network Interface (CNI) plugin to wire up a virtual network interface and assign the pod its unique IP address.
+
+  - *`Health Monitoring`:* It executes the Liveness, Readiness, and Startup probes defined in the PodSpec. If a Liveness probe fails, the kubelet is the component that actually restarts the container on that specific machine.
+
+  - *`Garbage Collection`:* It continuously monitors disk space on the node and cleans up dead containers and unused Docker images to prevent the node from running out of storage.
+
+----
 
 **B. `kube-proxy` (The Network Virtualization Layer)**
 Runs on every node and maintains the network architecture required to route traffic to internal Pod endpoints. It acts as a local routing table manager.
