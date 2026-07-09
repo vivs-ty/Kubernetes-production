@@ -229,6 +229,55 @@ The scheduling cycle operates via a two-phase architecture:
 
 **Scoring (Priorities):** Assigns a score ranging from 0 to 10 to the nodes that survived the filtering phase. The scheduler uses pre-configured algorithms (e.g., balancing resource utilization across the cluster, prioritizing topology distributions, or honoring affinity rules). The node with the highest aggregate score is chosen. The scheduler then performs a ***Binding*** operation, sending a request to the API server to populate the Pod's `spec.nodeName` attribute.
 
+  ```
+
+  [ Pod Queue ] ──(Sort)──▶ [ Next Pod to Schedule ]
+
+   ================ SCHEDULING CYCLE (Synchronous) ================
+   │
+   ├─▶ [ PreFilter ]      (Setup & check pod requirements)
+   ├─▶ [ Filter ]         (Eliminate nodes that cannot run the pod)
+   │      └─▶ [ PostFilter ] (Triggered ONLY if no nodes fit: handles Preemption)
+   │
+   ├─▶ [ PreScore ]       (Prepare shared state for scoring plugins)
+   ├─▶ [ Score ]          (Rank the remaining valid nodes based on metrics)
+   ├─▶ [ Normalize ]      (Scale scores to a standard 0-100 range)
+   │
+   ├─▶ [ Reserve ]        (Temporarily claim resources on the winning node)
+   └─▶ [ Permit ]         (Approve, deny, or wait for external conditions)
+          │
+          ▼
+   ================== BINDING CYCLE (Asynchronous) ==================
+          │
+          ├─▶ [ PreBind ]  (Execute prerequisites, e.g., attach network volumes)
+          ├─▶ [ Bind ]     (Assign the pod to the node via the API server/etcd)
+          └─▶ [ PostBind ] (Informational cleanup and logging)
+
+  ```
+
+  1. The Scheduling Cycle
+This cycle is synchronous and evaluates one pod at a time. If the pod fails at any point in this cycle (e.g., no nodes have enough RAM), the cycle aborts, and the pod is sent back to the queue.
+
+  - `Sort` / `Queueing`: Determines which pod in the queue should be evaluated next based on priority classes.
+
+  - `Filter` (The "Can it fit?" phase): Hard constraints. It checks things like node resources (CPU/Memory), nodeSelectors, and Taints/Tolerations. Nodes that fail are immediately dropped from consideration.
+
+  - `Post-Filter` (Preemption): If the Filter phase leaves zero available nodes, this phase kicks in. It looks for lower-priority pods it can evict to make room for the pending high-priority pod.
+
+  - `Score` (The "Which is best?" phase): Soft constraints. It grades the remaining valid nodes. For example, a node with the lowest current resource utilization might get a high score, while a heavily loaded node gets a low score.
+
+  - `Reserve` & `Permit`: The scheduler assumes the pod will go to the highest-scoring node and reserves those resources in its internal cache so the next pod in the queue doesn't accidentally claim them.
+
+  2. The Binding Cycle
+  Once the scheduler selects a node, it moves to the Binding Cycle. This cycle is asynchronous, meaning the scheduler can immediately start evaluating the next pod in the queue while the current pod finishes binding in the background.
+
+  - `PreBind`: Performs any necessary work before the pod is officially bound, such as provisioning a persistent storage volume.
+
+  - `Bind`: The actual API call to the Kubernetes API Server, writing the assignment into etcd (e.g., updating the Pod spec so nodeName = worker-node-1).
+
+  - `PostBind`: A purely informational phase used for logging, metrics, or cleaning up internal scheduler state.
+
+---
 **D. `kube-controller-manager` (The Reconciliation Core)**
 A monolithic binary containing a collection of independent, distinct control loops. Each controller runs in an infinite loop, utilizing the API server's ***Watch API*** to receive real-time streams of resource alterations.
 
