@@ -277,13 +277,51 @@ This cycle is synchronous and evaluates one pod at a time. If the pod fails at a
 
   - `PostBind`: A purely informational phase used for logging, metrics, or cleaning up internal scheduler state.
 
----
+----
+
 **D. `kube-controller-manager` (The Reconciliation Core)**
 A monolithic binary containing a collection of independent, distinct control loops. Each controller runs in an infinite loop, utilizing the API server's ***Watch API*** to receive real-time streams of resource alterations.
 
 **ReplicaSet Controller:** Continuously counts the active pods matching a specific label selector. If the count falls short of the desired target, it tells the API server to create new Pod objects.
 
 **Node Lifecycle Controller:** Monitors node heartbeats. If a worker node goes silent for longer than the defined eviction timeout, the controller marks the node as unhealthy and schedules its workloads onto alternative nodes.
+
+  ```
+ 
+  [ etcd ]
+                             ▲
+                             │ (State Persistence)
+                             ▼
+[ kube-scheduler ] ◄────► [ kube-apiserver ] 
+                             ▲
+                             │ (Watch & Update)
+                             ▼
+                 [ kube-controller-manager ]
+                             │
+     ┌───────────────┬───────┴───────┬───────────────┐
+     ▼               ▼               ▼               ▼
+   Node          Namespace       DaemonSet        CronJob
+ Controller     Controller      Controller      Controller
+
+  ```
+
+**The kube-controller-manager**
+The controller manager is a single binary daemon that embeds multiple core control loops. Rather than running dozens of separate processes, Kubernetes bundles these fundamental controllers together for easier deployment and management.
+Each controller inside the manager operates on the standard Kubernetes loop: it watches the API server for the desired state, compares it to the actual state, and executes logic to reconcile the two.
+
+**Core Controllers Breakdown:**
+
+  - *`Node Controller`:* Responsible for noticing and responding when nodes go down. It monitors node health and automatically triggers the eviction of pods from an unreachable node after a timeout (typically 5 minutes).
+
+  - *`Namespace Controller`:* Watches for Namespace deletion API requests. When a namespace is deleted, this controller acts as a garbage collector, ensuring all underlying resources (pods, services, volumes) within that namespace are wiped out before the namespace itself is removed.
+
+  - *`DaemonSet Controller`:* Watches for DaemonSet objects. It bypasses parts of the standard scheduler to ensure that exactly one copy of a specific pod is running on all (or a filtered subset of) valid nodes in the cluster.
+
+  - *`CronJob Controller`:* Watches for CronJob objects. It maintains an internal schedule and, when the time arrives, communicates with the API server to create a standard Job object to execute the task.
+
+  - *`custom controller`:*  The kube-controller-manager binary strictly runs the built-in core controllers. If you write a Custom Controller (often called an Operator, like a database operator or a backup operator), it runs as its own separate deployment inside the cluster. It talks to the kube-apiserver in the exact same way the core controllers do, but it is completely independent of the kube-controller-manager process.
+
+----
 
 **E. `cloud-controller-manager`**
 Decouples cloud-provider-specific logic from the core Kubernetes codebase. It interacts with cloud infrastructure APIs to manage external load balancers, provision persistent storage routing, and handle node lifecycles natively within environments like AWS, GCP, or Azure.
