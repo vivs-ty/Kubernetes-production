@@ -81,6 +81,13 @@ A production deployment typically needs:
 
 The tools in this matrix help cover each of those layers in a more complete platform design.
 
+### Recommended Priorities
+If you are learning Kubernetes for production, a practical order is:
+1. Start with Helm, Kustomize, and k9s for daily operations.
+2. Add Prometheus, Jaeger, and Cert-Manager for observability and reliability.
+3. Introduce Trivy, Kube-bench, Falco, and Kyverno for security and compliance.
+4. Expand into Rook, KEDA, and OpenCost as your platform matures.
+
 ### Quick Summary
 - Kubernetes provides the control plane and runtime foundation.
 - The surrounding ecosystem extends it with security, storage, monitoring, and cost visibility.
